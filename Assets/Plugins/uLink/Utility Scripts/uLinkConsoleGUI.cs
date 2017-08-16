@@ -4,6 +4,10 @@
 #define SAVE_ENABLED
 #endif
 
+#if UNITY_4_0 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_4 || UNITY_4_5 || UNITY_4_6
+#define UNITY_4
+#endif
+
 using System;
 using UnityEngine;
 using System.Collections.Generic;
@@ -104,7 +108,14 @@ internal class uLinkConsoleGUI : MonoBehaviour
 	private int warningCount;
 	private int errorCount;
 	private Vector2 scrollPosition;
+
+#if UNITY_4
 	private bool oldLockCursor;
+	private bool oldShowCursor;
+#else
+	private CursorLockMode oldCursorLockMode;
+	private bool oldCursorVisibility;
+#endif
 
 	private static readonly Color[] typeColors =
 	{
@@ -133,8 +144,24 @@ internal class uLinkConsoleGUI : MonoBehaviour
 			_isVisible = false;
 			SetVisible(true);
 		}
+	}
 
-		UnityEngine.Application.RegisterLogCallback(CaptureLog);
+	void OnEnable()
+	{
+#if UNITY_4
+		Application.RegisterLogCallback(LogCallback);
+#else
+		Application.logMessageReceived += LogCallback;
+#endif
+	}
+
+	void OnDisable()
+	{
+#if UNITY_4
+		Application.RegisterLogCallback(null);
+#else
+		Application.logMessageReceived -= LogCallback;
+#endif
 	}
 
 	void Update()
@@ -247,19 +274,19 @@ internal class uLinkConsoleGUI : MonoBehaviour
 			drawErrorCount = errorCount;
 		}
 
-		GUI.color = typeColors[(int)LogType.Log];
+		GUI.color = drawMessageCount > 0 ? typeColors[(int)LogType.Log] : Color.grey;
 		filterLogMask.message = GUILayout.Toggle(filterLogMask.message, " " + drawMessageCount + " Message(s)", GUILayout.ExpandWidth(false));
 		GUI.color = Color.white;
 
 		GUILayout.Space(5);
 
-		GUI.color = typeColors[(int)LogType.Warning];
+		GUI.color = drawWarningCount > 0 ? typeColors[(int)LogType.Warning] : Color.grey;
 		filterLogMask.warning = GUILayout.Toggle(filterLogMask.warning, " " + drawWarningCount + " Warning(s)", GUILayout.ExpandWidth(false));
 		GUI.color = Color.white;
 
 		GUILayout.Space(5);
 
-		GUI.color = typeColors[(int)LogType.Error];
+		GUI.color = drawErrorCount > 0 ? typeColors[(int)LogType.Error] : Color.grey;
 		filterLogMask.error = GUILayout.Toggle(filterLogMask.error, " " + drawErrorCount + " Error(s)", GUILayout.ExpandWidth(false));
 		GUI.color = Color.white;
 
@@ -303,11 +330,23 @@ internal class uLinkConsoleGUI : MonoBehaviour
 		{
 			if (visibility)
 			{
+#if UNITY_4
 				oldLockCursor = Screen.lockCursor;
+				oldShowCursor = Screen.showCursor;
+#else
+				oldCursorLockMode = Cursor.lockState;
+				oldCursorVisibility = Cursor.visible;
+#endif
 			}
 			else
 			{
+#if UNITY_4
 				Screen.lockCursor = oldLockCursor;
+				Screen.showCursor = oldShowCursor;
+#else
+				Cursor.lockState = oldCursorLockMode;
+				Cursor.visible = oldCursorVisibility;
+#endif
 			}
 		}
 	}
@@ -320,9 +359,9 @@ internal class uLinkConsoleGUI : MonoBehaviour
 		errorCount = 0;
 	}
 	
-#if SAVE_ENABLED
 	public void Save()
 	{
+#if SAVE_ENABLED
 		int index = 0;
 		DateTime now = DateTime.Now;
 		string filename = String.Empty;
@@ -353,12 +392,14 @@ internal class uLinkConsoleGUI : MonoBehaviour
 		Debug.Log("Saving console log to " + filename);
 
 		File.WriteAllText(filename, sb.ToString());
-	}
+#else
+		throw new NotSupportedException("Save is not supported on " + Application.platform);
 #endif
+	}
 
-	void CaptureLog(string log, string stacktrace, LogType type)
+	void LogCallback(string log, string stacktrace, LogType type)
 	{
-		if (!captureLogMask.Filter(type)) return;
+		if (!gameObject || !captureLogMask.Filter(type)) return;
 
 		if (autoShowOnLogMask.Filter(type))
 		{

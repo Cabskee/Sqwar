@@ -1,5 +1,9 @@
 // (c)2011 MuchDifferent. All Rights Reserved.
 
+#if UNITY_4_0 || UNITY_4_1 || UNITY_4_2 || UNITY_4_3 || UNITY_4_4 || UNITY_4_5 || UNITY_4_6
+#define UNITY_4
+#endif
+
 using UnityEngine;
 using uLink;
 
@@ -71,7 +75,10 @@ public class uLinkClientGUI : uLink.MonoBehaviour
 
 	void OnGUI()
 	{
-		if (uLink.Network.lastError == uLink.NetworkConnectionError.NoError && uLink.Network.status == uLink.NetworkStatus.Connected && uLink.NetworkView.FindByOwner(uLink.Network.player).Length != 0 && (!lockCursor || Screen.lockCursor))
+		if (uLink.Network.lastError == uLink.NetworkConnectionError.NoError &&
+			uLink.Network.status == uLink.NetworkStatus.Connected &&
+			uLink.NetworkView.AnyByOwner(uLink.Network.player) &&
+			(!lockCursor || IsCursorLocked()))
 		{
 			EnableGUI(false);
 			return;
@@ -91,7 +98,8 @@ public class uLinkClientGUI : uLink.MonoBehaviour
 		GUILayout.BeginVertical();
 		GUILayout.FlexibleSpace();
 
-		if (uLink.Network.lastError != uLink.NetworkConnectionError.NoError || uLink.Network.status != uLink.NetworkStatus.Disconnected)
+		if (uLink.Network.lastError != uLink.NetworkConnectionError.NoError ||
+			uLink.Network.status != uLink.NetworkStatus.Disconnected)
 		{
 			GUILayout.BeginVertical("Box", GUILayout.Width(BUSY_WIDTH));
 			BusyGUI();
@@ -137,13 +145,16 @@ public class uLinkClientGUI : uLink.MonoBehaviour
 		}
 		else if (uLink.Network.status == uLink.NetworkStatus.Connected)
 		{
-			if (uLink.NetworkView.FindByOwner(uLink.Network.player).Length != 0)
+			if (uLink.NetworkView.AnyByOwner(uLink.Network.player))
 			{
-				if (lockCursor)
+				if (lockCursor || hideCursor)
 				{
 					busyDoingWhat = "Click to start playing";
 
-					if (Input.GetMouseButton(0)) Screen.lockCursor = true;
+					if (Input.GetMouseButton(0))
+					{
+						EnableCursor(true);
+					}
 				}
 			}
 			else
@@ -374,8 +385,7 @@ public class uLinkClientGUI : uLink.MonoBehaviour
 
 	void EnableGUI(bool enabled)
 	{
-		if (lockCursor) Screen.lockCursor = !enabled;
-		if (hideCursor) Cursor.visible = enabled;
+		EnableCursor(enabled);
 
 		foreach (UnityEngine.MonoBehaviour component in enableWhenGUI)
 		{
@@ -386,6 +396,26 @@ public class uLinkClientGUI : uLink.MonoBehaviour
 		{
 			component.enabled = !enabled;
 		}
+	}
+
+	void EnableCursor(bool enabled)
+	{
+#if UNITY_4
+		if (lockCursor) Screen.lockCursor = !enabled;
+		if (hideCursor) Screen.showCursor = enabled;
+#else
+		if (lockCursor) Cursor.lockState = enabled? CursorLockMode.None : CursorLockMode.Locked;
+		if (hideCursor) Cursor.visible = enabled;
+#endif
+	}
+
+	bool IsCursorLocked()
+	{
+#if UNITY_4
+		return Screen.lockCursor;
+#else
+		return Cursor.lockState == CursorLockMode.Locked;
+#endif
 	}
 
 	void Connect(string host, int port)

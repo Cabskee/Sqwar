@@ -14,7 +14,7 @@ using uLink;
 /// this message to all connected clients.
 /// </remarks>
 [AddComponentMenu("uLink Utilities/Chat GUI")]
-[RequireComponent(typeof(uLinkNetworkView))]
+[RequireComponent(typeof(uLink.NetworkView))]
 public class uLinkChatGUI : uLink.MonoBehaviour
 {
 	public enum Position
