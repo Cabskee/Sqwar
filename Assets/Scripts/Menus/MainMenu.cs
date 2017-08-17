@@ -4,7 +4,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine;
 
 public class MainMenu: MonoBehaviour {
-	// Use this for initialization
 	public void hostGame() {
 		uLink.Network.InitializeServer(24, 25000, !uLink.Network.HavePublicAddress());
 	}
