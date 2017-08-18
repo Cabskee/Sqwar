@@ -331,7 +331,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fallingBlock: {fileID: 1967081837063090, guid: 1895c65037648864dbefad01f0d84517,
     type: 2}
-  spawnTimeInterval: {x: 2, y: 5}
+  spawnTimeInterval: {x: 1, y: 4}
   throwSpeed: 5
   increaseFallSpeedIn: 50
   increaseFallSpeedBy: 1
@@ -558,7 +558,7 @@ Camera:
   far clip plane: 100
   field of view: 60
   orthographic: 1
-  orthographic size: 6.27907
+  orthographic size: 8.4375
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -603,9 +603,9 @@ MonoBehaviour:
   Axis: 0
   UpdateType: 0
   FollowHorizontal: 1
-  HorizontalFollowSmoothness: 0.15
+  HorizontalFollowSmoothness: 0.1
   FollowVertical: 1
-  VerticalFollowSmoothness: 0.15
+  VerticalFollowSmoothness: 0.1
   OffsetX: 0
   OffsetY: 0
   IsRelativeOffset: 1
@@ -628,7 +628,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ProCamera2D: {fileID: 2146721680}
-  PixelsPerUnit: 86
+  PixelsPerUnit: 64
   ViewportAutoScale: 3
   TargetViewportSizeInPixels: {x: 1920, y: 1080}
   Zoom: 1

@@ -23,9 +23,8 @@ public class FallingBlockMovement: MonoBehaviour {
 	}
 
 	void onTrigger(RaycastHit2D collision) {
-		Debug.Log(collision.transform.gameObject);
-		if (collision.transform.gameObject.layer == LayerMask.NameToLayer("Falling Block")) {
-			Debug.Log("Box on box action");
+		if (collision.transform.gameObject.layer != LayerMask.NameToLayer("Falling Block") && collision.transform.gameObject.layer != LayerMask.NameToLayer("Platform")) {
+			blockController.collisionState.reset();
 		}
 	}
 
