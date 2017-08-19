@@ -6,12 +6,11 @@ public class BlockSpawner: MonoBehaviour {
 	public GameObject fallingBlock;
 
 	// Spawn Variables
+	public Vector2 mapWidth;
 	public Vector2 spawnTimeInterval;
 	float lastSpawnTime;
 
 	// Speed Variables
-	public float throwSpeed;
-
 	public float increaseFallSpeedIn;
 	public float increaseFallSpeedBy;
 	public float baseFallSpeed;
@@ -36,7 +35,8 @@ public class BlockSpawner: MonoBehaviour {
 			}
 
 			if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.x, spawnTimeInterval.y)) {
-				uLink.Network.Instantiate(uLink.Network.player, fallingBlock, new Vector3(Random.Range(-25.0f, 25.0f), 10, 0), Quaternion.identity, 0, throwSpeed, currentFallSpeed);
+				GameObject newObj = uLink.Network.Instantiate(uLink.Network.player, fallingBlock, new Vector3(Random.Range(mapWidth.x, mapWidth.y), 10, 0), Quaternion.identity, 0, currentFallSpeed);
+				newObj.name = "Falling Block "+Random.Range(0,5000000);
 				lastSpawnTime = Time.time;
 			}
 		}

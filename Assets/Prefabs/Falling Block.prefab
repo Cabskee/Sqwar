@@ -27,7 +27,7 @@ GameObject:
   - component: {fileID: 114750439086116844}
   m_Layer: 10
   m_Name: Falling Block
-  m_TagString: Untagged
+  m_TagString: Falling Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -151,7 +151,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57e006ac78b7b594a8488a699f983f64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  throwSpeed: 0
   fallSpeed: 0
 --- !u!114 &114750439086116844
 MonoBehaviour:

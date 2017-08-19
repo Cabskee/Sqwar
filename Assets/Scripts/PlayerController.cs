@@ -7,6 +7,8 @@ using Prime31;
 public class PlayerController: MonoBehaviour {
 	CharacterController2D charController;
 
+	public GameObject carriedBlock;
+
 	// Movement Variables
 	public float gravity;
 	public float speed;
@@ -20,7 +22,6 @@ public class PlayerController: MonoBehaviour {
 	Vector3 clientVelocity;
 
 	Vector3 serverPosition;
-	Vector3 serverVelocity;
 
 	void Awake() {
 		charController = GetComponent<CharacterController2D>();
@@ -30,17 +31,18 @@ public class PlayerController: MonoBehaviour {
 		if (uLink.NetworkView.Get(this).isMine) {
 			GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ProCamera2D>().AddCameraTarget(transform);
 		}
+
+		carriedBlock.SetActive(false);
 	}
 
 	void Update() {
 		if (charController.isGrounded)
 			clientVelocity.y = 0;
 
-		if (uLink.Network.isClient) {
+		if (uLink.Network.isClient)
 			clientInput = Vector2.zero;
-		}
 
-		if (uLink.NetworkView.Get(this).isMine) {
+		if (uLink.NetworkView.Get(this).isMine) { // Owner Movement & Actions
 			normalizedHorizontal = Input.GetAxisRaw("Horizontal");
 			clientInput.x = normalizedHorizontal;
 
@@ -48,12 +50,37 @@ public class PlayerController: MonoBehaviour {
 				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * -gravity);
 				clientInput.y = 1f;
 			}
-		} else if (uLink.Network.isServer) {
+
+			// Rubberband player back to Server Position if he moves too far
+			Debug.Log(Mathf.Abs(transform.position.y - serverPosition.y));
+			if (Mathf.Abs(transform.position.x - serverPosition.x) >= 3f) {
+				transform.position = new Vector3(serverPosition.x, transform.position.y, 0);
+			}
+			if (Mathf.Abs(transform.position.y - serverPosition.y) >= 3.8f) {
+				transform.position = new Vector3(transform.position.x, serverPosition.y, 0);
+			}
+
+			// Pickup a nearby block or fire a carried block
+			if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.LeftShift)) {
+				if (!isCarryingBlock()) { // Pick up the closest Block
+					GameObject pickUpBlock = findNearestFallenBlock();
+					if (pickUpBlock) {
+						// Tell the server you picked up this block and pick it up clientside
+						uLink.NetworkView.Get(this).RPC("receiveClientPickUpInput", uLink.RPCMode.Server);
+						carriedBlock.SetActive(true);
+					}
+				} else { // Fire a Carried Block
+					Debug.Log("Fire!");
+				}
+			}
+		} else if (uLink.Network.isServer) { // Server Movement (Using Input from Client)
 			normalizedHorizontal = clientInput.x;
 			if (clientInput.y == 1.0f) {
 				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * -gravity);
 			}
-		} else if (uLink.Network.isClient) {
+		} else if (uLink.Network.isClient) { // Proxy Movement (Carbon copy of Server movement)
+			float proxyScale = (serverPosition.x > transform.position.x) ? 1 : -1;
+			transform.localScale = new Vector3(proxyScale, 1, 1);
 			transform.position = serverPosition;
 			return;
 		}
@@ -61,6 +88,10 @@ public class PlayerController: MonoBehaviour {
 		// Apply horizontal speed smoothing
 		var smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
 		clientVelocity.x = Mathf.Lerp(clientVelocity.x, normalizedHorizontal * speed, Time.deltaTime*smoothedMovement);
+
+		// Face the player left or right based on movement
+		if (normalizedHorizontal != 0f)
+			transform.localScale = new Vector3(normalizedHorizontal, 1, 1);
 
 		// Apply downward gravity
 		clientVelocity.y += gravity * Time.deltaTime;
@@ -72,21 +103,55 @@ public class PlayerController: MonoBehaviour {
 		clientVelocity = charController.velocity;
 	}
 
+	public bool isCarryingBlock() {
+		return carriedBlock.activeSelf;
+	}
+
+	GameObject findNearestFallenBlock() {
+		GameObject[] nearbyGOs = GameObject.FindGameObjectsWithTag("Falling Block");
+		GameObject nearestBlock = null;
+		Vector2 nearestDistance = Vector2.positiveInfinity;
+		foreach (GameObject block in nearbyGOs) {
+			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
+			if (newDist.x <= 1.3f && newDist.y <= 0.25f && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
+				nearestDistance = newDist;
+				nearestBlock = block;
+			}
+		};
+		return nearestBlock;
+	}
+
 	void FixedUpdate() {
 		// Owner sends current Input to the Server every FixedUpdate
 		if (uLink.NetworkView.Get(this).isMine) {
-			uLink.NetworkView.Get(this).UnreliableRPC("receiveClientInput", uLink.RPCMode.Server, clientInput);
+			uLink.NetworkView.Get(this).UnreliableRPC("receiveClientMovementInput", uLink.RPCMode.Server, clientInput);
 		}
 
 		// Server sends current Velocity and Position to every Client every FixedUpdate
 		if (uLink.Network.isServer) {
-			uLink.NetworkView.Get(this).UnreliableRPC("receivePositionFromServer", uLink.RPCMode.Others, clientVelocity, transform.position);
+			uLink.NetworkView.Get(this).UnreliableRPC("receivePositionFromServer", uLink.RPCMode.All, transform.position);
 		}
+	}
+
+	[RPC]
+	void receiveClientPickUpInput() {
+		if (uLink.Network.isServer) {
+			GameObject nearestBlock = findNearestFallenBlock();
+			if (nearestBlock && !isCarryingBlock()) {
+				uLink.Network.Destroy(nearestBlock.GetComponent<uLink.NetworkView>().networkView);
+			}
+			uLink.NetworkView.Get(this).RPC("receivePickUpResponseFromServer", uLink.RPCMode.All, (nearestBlock && !isCarryingBlock()));
+		}
+	}
+
+	[RPC]
+	void receivePickUpResponseFromServer(bool pickedUp) {
+		carriedBlock.SetActive(pickedUp);
 	}
 
 	// Server receiving input from a Client
 	[RPC]
-	void receiveClientInput(Vector2 clientInput) {
+	void receiveClientMovementInput(Vector2 clientInput) {
 		if (uLink.Network.isServer) {
 			this.clientInput = clientInput;
 		}
@@ -94,8 +159,7 @@ public class PlayerController: MonoBehaviour {
 
 	// Client receiving latest position from the Server
 	[RPC]
-	void receivePositionFromServer(Vector3 serverVelocity, Vector3 serverPosition) {
-		this.serverVelocity = serverVelocity;
+	void receivePositionFromServer(Vector3 serverPosition) {
 		this.serverPosition = serverPosition;
 	}
 }
