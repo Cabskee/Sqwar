@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class BlockSpawner: MonoBehaviour {
 	public GameObject fallingBlock;
+	public GameObject fallingBlockParent;
 
 	// Spawn Variables
-	public Vector2 mapWidth;
+	public Vector2 mapSpawnWidth;
 	public Vector2 spawnTimeInterval;
 	float lastSpawnTime;
 
@@ -16,6 +17,8 @@ public class BlockSpawner: MonoBehaviour {
 	public float baseFallSpeed;
 	public float currentFallSpeed;
 	float fallSpeedCounter;
+
+	public int blocksSpawned = 1;
 
 	void Start() {
 		if (!uLink.Network.isServer) {
@@ -35,10 +38,18 @@ public class BlockSpawner: MonoBehaviour {
 			}
 
 			if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.x, spawnTimeInterval.y)) {
-				GameObject newObj = uLink.Network.Instantiate(uLink.Network.player, fallingBlock, new Vector3(Random.Range(mapWidth.x, mapWidth.y), 10, 0), Quaternion.identity, 0, currentFallSpeed);
-				newObj.name = "Falling Block "+Random.Range(0,5000000);
+				uLink.NetworkView.Get(this).RPC("createFallingBlockAtLocation", uLink.RPCMode.All, new Vector3(Random.Range(mapSpawnWidth.x, mapSpawnWidth.y), 10, 0));
 				lastSpawnTime = Time.time;
 			}
 		}
+	}
+
+	[RPC]
+	void createFallingBlockAtLocation(Vector3 spawnPos) {
+		GameObject newBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
+
+		// Set falling speed & ViewID
+		newBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed, uLink.Network.AllocateViewID(uLink.NetworkPlayer.server));
+		blocksSpawned++;
 	}
 }

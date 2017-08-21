@@ -111,8 +111,8 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1.34375, y: 1.34375}
-    newSize: {x: 0.86, y: 0.86}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
@@ -132,11 +132,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   carriedBlock: {fileID: 1976188761909102}
-  gravity: -16
+  shootingBlock: {fileID: 1898819407404888, guid: 6875fa6dc6d7e9e4089b5aadec768426,
+    type: 2}
+  gravity: 50
   speed: 8
   groundDamping: 50
-  airDamping: 100
-  jumpHeight: 4
+  airDamping: 50
+  jumpHeight: 4.5
 --- !u!114 &114189163572878258
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -173,10 +175,10 @@ MonoBehaviour:
   _skinWidth: 0.02
   platformMask:
     serializedVersion: 2
-    m_Bits: 3584
+    m_Bits: 1536
   triggerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 2048
   oneWayPlatformMask:
     serializedVersion: 2
     m_Bits: 0
@@ -282,12 +284,12 @@ SpriteRenderer:
   m_SortingLayerID: 409932007
   m_SortingLayer: 3
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: cbb0308535db289458e7d5a7d524bd34, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 05e0d8b6644f51e4b927ce15a47c3366, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.86, y: 0.86}
+  m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

@@ -13,7 +13,7 @@ public class MainMenu: MonoBehaviour {
 	}
 
 	public void openSettings() {
-
+		Debug.Log("Settings");
 	}
 
 	void uLink_OnServerInitialized() {

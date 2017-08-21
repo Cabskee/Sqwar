@@ -8,6 +8,7 @@ public class PlayerController: MonoBehaviour {
 	CharacterController2D charController;
 
 	public GameObject carriedBlock;
+	public GameObject shootingBlock;
 
 	// Movement Variables
 	public float gravity;
@@ -16,6 +17,7 @@ public class PlayerController: MonoBehaviour {
 	public float airDamping;
 	public float jumpHeight;
 
+	bool jumpedSinceGrounded;
 	float normalizedHorizontal;
 
 	Vector2 clientInput;
@@ -36,8 +38,10 @@ public class PlayerController: MonoBehaviour {
 	}
 
 	void Update() {
-		if (charController.isGrounded)
+		if (charController.isGrounded) {
+			jumpedSinceGrounded = false;
 			clientVelocity.y = 0;
+		}
 
 		if (uLink.Network.isClient)
 			clientInput = Vector2.zero;
@@ -46,17 +50,17 @@ public class PlayerController: MonoBehaviour {
 			normalizedHorizontal = Input.GetAxisRaw("Horizontal");
 			clientInput.x = normalizedHorizontal;
 
-			if (charController.isGrounded && Input.GetKeyDown(KeyCode.Space)) {
-				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * -gravity);
+			if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
+				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
+				jumpedSinceGrounded = true;
 				clientInput.y = 1f;
 			}
 
 			// Rubberband player back to Server Position if he moves too far
-			Debug.Log(Mathf.Abs(transform.position.y - serverPosition.y));
-			if (Mathf.Abs(transform.position.x - serverPosition.x) >= 3f) {
+			if (Mathf.Abs(transform.position.x - serverPosition.x) >= (speed*0.5f)) {
 				transform.position = new Vector3(serverPosition.x, transform.position.y, 0);
 			}
-			if (Mathf.Abs(transform.position.y - serverPosition.y) >= 3.8f) {
+			if (Mathf.Abs(transform.position.y - serverPosition.y) >= (jumpHeight*0.9f)) {
 				transform.position = new Vector3(transform.position.x, serverPosition.y, 0);
 			}
 
@@ -70,13 +74,14 @@ public class PlayerController: MonoBehaviour {
 						carriedBlock.SetActive(true);
 					}
 				} else { // Fire a Carried Block
-					Debug.Log("Fire!");
+					uLink.NetworkView.Get(this).RPC("clientRequestsToFireBlock", uLink.RPCMode.Server);
 				}
 			}
 		} else if (uLink.Network.isServer) { // Server Movement (Using Input from Client)
 			normalizedHorizontal = clientInput.x;
-			if (clientInput.y == 1.0f) {
-				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * -gravity);
+			if (clientInput.y == 1f && (charController.isGrounded || !jumpedSinceGrounded)) {
+				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
+				jumpedSinceGrounded = true;
 			}
 		} else if (uLink.Network.isClient) { // Proxy Movement (Carbon copy of Server movement)
 			float proxyScale = (serverPosition.x > transform.position.x) ? 1 : -1;
@@ -86,7 +91,7 @@ public class PlayerController: MonoBehaviour {
 		}
 
 		// Apply horizontal speed smoothing
-		var smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
+		float smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
 		clientVelocity.x = Mathf.Lerp(clientVelocity.x, normalizedHorizontal * speed, Time.deltaTime*smoothedMovement);
 
 		// Face the player left or right based on movement
@@ -94,9 +99,9 @@ public class PlayerController: MonoBehaviour {
 			transform.localScale = new Vector3(normalizedHorizontal, 1, 1);
 
 		// Apply downward gravity
-		clientVelocity.y += gravity * Time.deltaTime;
+		clientVelocity.y += -gravity * Time.deltaTime;
 
-		// Send movement
+		// Update movement
 		charController.move(clientVelocity * Time.deltaTime);
 
 		// Update latest clientVelocity
@@ -108,10 +113,9 @@ public class PlayerController: MonoBehaviour {
 	}
 
 	GameObject findNearestFallenBlock() {
-		GameObject[] nearbyGOs = GameObject.FindGameObjectsWithTag("Falling Block");
 		GameObject nearestBlock = null;
 		Vector2 nearestDistance = Vector2.positiveInfinity;
-		foreach (GameObject block in nearbyGOs) {
+		foreach (GameObject block in GameObject.FindGameObjectsWithTag("Falling Block")) {
 			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
 			if (newDist.x <= 1.3f && newDist.y <= 0.25f && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
 				nearestDistance = newDist;
@@ -134,6 +138,23 @@ public class PlayerController: MonoBehaviour {
 	}
 
 	[RPC]
+	void clientRequestsToFireBlock() {
+		if (uLink.Network.isServer && isCarryingBlock()) {
+			GameObject thrownBlock = TrashMan.Instantiate(shootingBlock, carriedBlock.transform.position, Quaternion.identity);
+			thrownBlock.GetComponent<ShootingBlock>().setDirectionFacing(transform.localScale.x);
+			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others);
+			carriedBlock.SetActive(false);
+		}
+	}
+
+	[RPC]
+	void clientFiredBlock(Vector3 spawnPos, float facingDirection) {
+		GameObject thrownBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity);
+		thrownBlock.GetComponent<ShootingBlock>().setDirectionFacing(facingDirection);
+		carriedBlock.SetActive(false);
+	}
+
+	[RPC]
 	void receiveClientPickUpInput() {
 		if (uLink.Network.isServer) {
 			GameObject nearestBlock = findNearestFallenBlock();
@@ -149,7 +170,7 @@ public class PlayerController: MonoBehaviour {
 		carriedBlock.SetActive(pickedUp);
 	}
 
-	// Server receiving input from a Client
+	// Server receiving X/Y movement input from a Client
 	[RPC]
 	void receiveClientMovementInput(Vector2 clientInput) {
 		if (uLink.Network.isServer) {
@@ -157,7 +178,7 @@ public class PlayerController: MonoBehaviour {
 		}
 	}
 
-	// Client receiving latest position from the Server
+	// Client receiving latest X/Y movement from the Server
 	[RPC]
 	void receivePositionFromServer(Vector3 serverPosition) {
 		this.serverPosition = serverPosition;
