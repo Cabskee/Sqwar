@@ -104,7 +104,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -131,14 +131,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29a5c0c69e70bae41999380ffa34c766, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  livesLeft: 0
   carriedBlock: {fileID: 1976188761909102}
-  shootingBlock: {fileID: 1898819407404888, guid: 6875fa6dc6d7e9e4089b5aadec768426,
-    type: 2}
   gravity: 50
   speed: 8
   groundDamping: 50
   airDamping: 50
   jumpHeight: 4.5
+  pickUpDistance: {x: 1.3, y: 0.25}
 --- !u!114 &114189163572878258
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -153,11 +153,11 @@ MonoBehaviour:
   _parent: {fileID: 0}
   _childIndex: -1
   _children: []
-  stateSynchronization: 2
+  stateSynchronization: 0
   securable: 3
   observed: {fileID: 114120990802719588}
   _manualViewID: 0
-  rpcReceiver: 2
+  rpcReceiver: 1
   listOfGameObjects: []
   _prefabRoot: {fileID: 1227076451764164}
 --- !u!114 &114804185050217878
@@ -171,11 +171,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 976d36b438f331c4b847b424340c7a19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ignoreOneWayPlatformsThisFrame: 0
+  ignoreOneWayPlatformsThisFrame: 1
   _skinWidth: 0.02
   platformMask:
     serializedVersion: 2
-    m_Bits: 1536
+    m_Bits: 512
   triggerMask:
     serializedVersion: 2
     m_Bits: 2048
@@ -208,7 +208,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  totalHorizontalRays: 8
+  totalHorizontalRays: 6
   totalVerticalRays: 6
 --- !u!212 &212327773802665772
 SpriteRenderer:

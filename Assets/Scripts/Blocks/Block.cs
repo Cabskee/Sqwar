@@ -18,15 +18,24 @@ public class Block: MonoBehaviour {
 	/// <param name="numberSpawned">Block Name</param>
 	/// <param name="speed">Movement/Fall Speed</param>
 	/// <param name="viewID">View ID and Owner</param>
+	public void initialize(int numberSpawned, float speed) {
+		initialize(numberSpawned, speed, uLink.Network.AllocateViewID(uLink.NetworkPlayer.server));
+	}
 	public void initialize(int numberSpawned, float speed, uLink.NetworkViewID viewID) {
+		initialize(numberSpawned, speed, 1f, viewID);
+	}
+	public void initialize(int numberSpawned, float speed, float facingDirection, uLink.NetworkViewID viewID) {
 		// Set GameObject name for sanity reasons
-		gameObject.name = "Falling Block "+numberSpawned;
+		gameObject.name = "Block "+numberSpawned;
 
 		// Set NetworkViewID & owner
 		uLink.NetworkView.Get(this).SetViewID(viewID, viewID.allocator);
 
 		// Set block falling speed
 		this.speed = speed;
+
+		// Set block facing
+		transform.localScale = new Vector3(facingDirection, transform.localScale.y, transform.localScale.y);
 	}
 
 	// Refreshes the position of this Block on a specific or all client(s)

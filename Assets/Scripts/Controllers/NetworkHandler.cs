@@ -4,10 +4,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine;
 
 public class NetworkHandler: MonoBehaviour {
-	public GameObject playerObject;
-
 	void Awake() {
 		if (!uLink.Network.isServer && !uLink.Network.isClient) {
+			uLink.Network.isAuthoritativeServer = true;
 			uLink.Network.InitializeServer(24, 25000, !uLink.Network.HavePublicAddress());
 			Debug.Log("Started up new Test server from starting on this Scene.");
 		}
@@ -25,16 +24,16 @@ public class NetworkHandler: MonoBehaviour {
 		}
 	}
 
-	// Scene loaded for the Server, 
+	// Scene loaded for the Server
 	void onServerSceneLoaded(Scene scene, LoadSceneMode mode) {
 		if (uLink.Network.isServer) {
-			uLink.Network.Instantiate(uLink.Network.player, playerObject, Vector3.zero, Quaternion.identity, 0);
+			GameHandler.Instance.createPlayer(uLink.Network.player);
 		}
 	}
 
 	// Client connected to server, create their player object
 	void uLink_OnPlayerConnected(uLink.NetworkPlayer player) {
-		uLink.Network.Instantiate(player, playerObject, Vector3.zero, Quaternion.identity, 0);
+		GameHandler.Instance.createPlayer(player);
 	}
 
 	// Client disconnected from server, go back to the Main Menu

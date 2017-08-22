@@ -25,9 +25,9 @@ GameObject:
   - component: {fileID: 61662874445900608}
   - component: {fileID: 50901140623657110}
   - component: {fileID: 114749732835929830}
-  m_Layer: 10
+  m_Layer: 11
   m_Name: Shooting Block
-  m_TagString: Falling Block
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -39,7 +39,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1898819407404888}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.553451, y: 2.3589146, z: 0}
+  m_LocalPosition: {x: 8.942226, y: 0.6016615, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -74,7 +74,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -113,14 +113,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 976d36b438f331c4b847b424340c7a19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ignoreOneWayPlatformsThisFrame: 0
+  ignoreOneWayPlatformsThisFrame: 1
   _skinWidth: 0.02
   platformMask:
     serializedVersion: 2
-    m_Bits: 2816
+    m_Bits: 0
   triggerMask:
     serializedVersion: 2
-    m_Bits: 1536
+    m_Bits: 0
   oneWayPlatformMask:
     serializedVersion: 2
     m_Bits: 0
@@ -150,8 +150,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  totalHorizontalRays: 4
-  totalVerticalRays: 8
+  totalHorizontalRays: 6
+  totalVerticalRays: 4
 --- !u!114 &114749732835929830
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -166,11 +166,11 @@ MonoBehaviour:
   _parent: {fileID: 0}
   _childIndex: -1
   _children: []
-  stateSynchronization: 2
+  stateSynchronization: 0
   securable: 3
-  observed: {fileID: 4205626131082572}
+  observed: {fileID: 114253787492330136}
   _manualViewID: 0
-  rpcReceiver: 2
+  rpcReceiver: 1
   listOfGameObjects: []
   _prefabRoot: {fileID: 1898819407404888}
 --- !u!212 &212129934740581530

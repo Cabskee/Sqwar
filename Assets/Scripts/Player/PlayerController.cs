@@ -7,8 +7,9 @@ using Prime31;
 public class PlayerController: MonoBehaviour {
 	CharacterController2D charController;
 
+	public int livesLeft;
+
 	public GameObject carriedBlock;
-	public GameObject shootingBlock;
 
 	// Movement Variables
 	public float gravity;
@@ -20,6 +21,8 @@ public class PlayerController: MonoBehaviour {
 	bool jumpedSinceGrounded;
 	float normalizedHorizontal;
 
+	public Vector2 pickUpDistance;
+
 	Vector2 clientInput;
 	Vector3 clientVelocity;
 
@@ -29,9 +32,24 @@ public class PlayerController: MonoBehaviour {
 		charController = GetComponent<CharacterController2D>();
 	}
 
+	void OnEnable() {
+		charController.onTriggerEnterEvent += onTriggerEnter;
+	}
+
+	void onTriggerEnter(Collider2D other) {
+		Debug.Log("OnTriggerEnter");
+	}
+	void OnTriggerEnter2D(Collider2D other) {
+		Debug.Log("OnTriggerEnter2D");
+	}
+
+	void uLink_OnNetworkInstantiate(uLink.NetworkMessageInfo info) {
+		livesLeft = info.networkView.initialData.Read<int>();
+	}
+
 	void Start() {
 		if (uLink.NetworkView.Get(this).isMine) {
-			GameObject.FindGameObjectWithTag("MainCamera").GetComponent<ProCamera2D>().AddCameraTarget(transform);
+			ProCamera2D.Instance.AddCameraTarget(transform);
 		}
 
 		carriedBlock.SetActive(false);
@@ -65,7 +83,7 @@ public class PlayerController: MonoBehaviour {
 			}
 
 			// Pickup a nearby block or fire a carried block
-			if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.LeftShift)) {
+			if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
 				if (!isCarryingBlock()) { // Pick up the closest Block
 					GameObject pickUpBlock = findNearestFallenBlock();
 					if (pickUpBlock) {
@@ -117,7 +135,7 @@ public class PlayerController: MonoBehaviour {
 		Vector2 nearestDistance = Vector2.positiveInfinity;
 		foreach (GameObject block in GameObject.FindGameObjectsWithTag("Falling Block")) {
 			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
-			if (newDist.x <= 1.3f && newDist.y <= 0.25f && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
+			if (newDist.x <= pickUpDistance.x && newDist.y <= pickUpDistance.y && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
 				nearestDistance = newDist;
 				nearestBlock = block;
 			}
@@ -131,35 +149,38 @@ public class PlayerController: MonoBehaviour {
 			uLink.NetworkView.Get(this).UnreliableRPC("receiveClientMovementInput", uLink.RPCMode.Server, clientInput);
 		}
 
-		// Server sends current Velocity and Position to every Client every FixedUpdate
+		// Server sends current Position to every Client every FixedUpdate
 		if (uLink.Network.isServer) {
 			uLink.NetworkView.Get(this).UnreliableRPC("receivePositionFromServer", uLink.RPCMode.All, transform.position);
 		}
 	}
 
+	// THROWING BLOCK
+
 	[RPC]
 	void clientRequestsToFireBlock() {
 		if (uLink.Network.isServer && isCarryingBlock()) {
-			GameObject thrownBlock = TrashMan.Instantiate(shootingBlock, carriedBlock.transform.position, Quaternion.identity);
-			thrownBlock.GetComponent<ShootingBlock>().setDirectionFacing(transform.localScale.x);
-			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others);
+			uLink.NetworkViewID blockViewID = uLink.Network.AllocateViewID(uLink.Network.player);
+			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, transform.localScale.x, blockViewID);
+			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others, carriedBlock.transform.position, transform.localScale.x, blockViewID);
 			carriedBlock.SetActive(false);
 		}
 	}
 
 	[RPC]
-	void clientFiredBlock(Vector3 spawnPos, float facingDirection) {
-		GameObject thrownBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity);
-		thrownBlock.GetComponent<ShootingBlock>().setDirectionFacing(facingDirection);
+	void clientFiredBlock(Vector3 spawnPos, float facingDirection, uLink.NetworkViewID viewID) {
+		BlockSpawner.Instance.createShootingBlockAtLocation(spawnPos, facingDirection, viewID);
 		carriedBlock.SetActive(false);
 	}
+
+	// PICKING UP BLOCK
 
 	[RPC]
 	void receiveClientPickUpInput() {
 		if (uLink.Network.isServer) {
 			GameObject nearestBlock = findNearestFallenBlock();
 			if (nearestBlock && !isCarryingBlock()) {
-				uLink.Network.Destroy(nearestBlock.GetComponent<uLink.NetworkView>().networkView);
+				uLink.Network.Destroy(nearestBlock.GetComponent<uLink.NetworkView>());
 			}
 			uLink.NetworkView.Get(this).RPC("receivePickUpResponseFromServer", uLink.RPCMode.All, (nearestBlock && !isCarryingBlock()));
 		}
@@ -169,6 +190,8 @@ public class PlayerController: MonoBehaviour {
 	void receivePickUpResponseFromServer(bool pickedUp) {
 		carriedBlock.SetActive(pickedUp);
 	}
+
+	// MOVEMENT
 
 	// Server receiving X/Y movement input from a Client
 	[RPC]

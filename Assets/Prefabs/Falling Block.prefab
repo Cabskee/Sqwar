@@ -74,7 +74,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -101,14 +101,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 976d36b438f331c4b847b424340c7a19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ignoreOneWayPlatformsThisFrame: 0
+  ignoreOneWayPlatformsThisFrame: 1
   _skinWidth: 0.02
   platformMask:
     serializedVersion: 2
-    m_Bits: 2816
+    m_Bits: 512
   triggerMask:
     serializedVersion: 2
-    m_Bits: 1536
+    m_Bits: 0
   oneWayPlatformMask:
     serializedVersion: 2
     m_Bits: 0
@@ -139,7 +139,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   totalHorizontalRays: 4
-  totalVerticalRays: 8
+  totalVerticalRays: 6
 --- !u!114 &114412744184714804
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -166,11 +166,11 @@ MonoBehaviour:
   _parent: {fileID: 0}
   _childIndex: -1
   _children: []
-  stateSynchronization: 2
+  stateSynchronization: 0
   securable: 3
-  observed: {fileID: 4342217761161852}
+  observed: {fileID: 114412744184714804}
   _manualViewID: 0
-  rpcReceiver: 2
+  rpcReceiver: 1
   listOfGameObjects: []
   _prefabRoot: {fileID: 1967081837063090}
 --- !u!212 &212884162991221530

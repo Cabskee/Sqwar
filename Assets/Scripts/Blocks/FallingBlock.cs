@@ -11,7 +11,7 @@ public class FallingBlock: Block {
 	void onEnterTrigger(RaycastHit2D collision) {
 		// If boundary is hit on the Server, destroy this Block
 		// If boundary is hit on the Client, request latest position from Server for this Block
-		if (collision.transform.gameObject.layer == LayerMask.NameToLayer("Boundary")) {
+		if (collision.transform.gameObject.layer == LayerMask.NameToLayer(Constants.LAYER_BOUNDARY)) {
 			if (uLink.Network.isServer) {
 				uLink.Network.Destroy(uLink.NetworkView.Get(this));
 			} else {
@@ -19,7 +19,7 @@ public class FallingBlock: Block {
 			}
 		}
 
-		if (collision.transform.gameObject.layer != LayerMask.NameToLayer("Falling Block") && collision.transform.gameObject.layer != LayerMask.NameToLayer("Platform")) {
+		if (collision.transform.gameObject.layer != LayerMask.NameToLayer(Constants.LAYER_FALLINGBLOCK) && collision.transform.gameObject.layer != LayerMask.NameToLayer(Constants.LAYER_PLATFORM)) {
 			blockController.collisionState.reset();
 		}
 	}
