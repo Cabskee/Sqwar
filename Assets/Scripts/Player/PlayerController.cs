@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using Com.LuisPedroFonseca.ProCamera2D;
 using UnityEngine;
+using Constants;
 using Prime31;
 
 public class PlayerController: MonoBehaviour {
 	CharacterController2D charController;
 
+	public Color color;
 	public int livesLeft;
 
 	public GameObject carriedBlock;
@@ -53,6 +55,11 @@ public class PlayerController: MonoBehaviour {
 		}
 
 		carriedBlock.SetActive(false);
+
+		// TODO: Use color of this player they set
+		color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+		GetComponent<SpriteRenderer>().color = color;
+		carriedBlock.GetComponent<SpriteRenderer>().color = color;
 	}
 
 	void Update() {
@@ -92,7 +99,15 @@ public class PlayerController: MonoBehaviour {
 						carriedBlock.SetActive(true);
 					}
 				} else { // Fire a Carried Block
-					uLink.NetworkView.Get(this).RPC("clientRequestsToFireBlock", uLink.RPCMode.Server);
+					Constant.FacingDirection facingDirection = Constant.FacingDirection.Right;
+					if (Input.GetKey(KeyCode.W)) {
+						facingDirection = Constant.FacingDirection.Up;
+					} else if (Input.GetKey(KeyCode.S)) {
+						facingDirection = Constant.FacingDirection.Down;
+					} else if ((int)transform.localScale.x != 1) {
+						facingDirection = Constant.FacingDirection.Left;
+					}
+					uLink.NetworkView.Get(this).RPC("clientRequestsToFireBlock", uLink.RPCMode.Server, facingDirection);
 				}
 			}
 		} else if (uLink.Network.isServer) { // Server Movement (Using Input from Client)
@@ -158,18 +173,18 @@ public class PlayerController: MonoBehaviour {
 	// THROWING BLOCK
 
 	[RPC]
-	void clientRequestsToFireBlock() {
+	void clientRequestsToFireBlock(Constant.FacingDirection facingDirection) {
 		if (uLink.Network.isServer && isCarryingBlock()) {
 			uLink.NetworkViewID blockViewID = uLink.Network.AllocateViewID(uLink.Network.player);
-			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, transform.localScale.x, blockViewID);
-			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others, carriedBlock.transform.position, transform.localScale.x, blockViewID);
+			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, blockViewID);
+			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others, carriedBlock.transform.position, facingDirection, color, blockViewID);
 			carriedBlock.SetActive(false);
 		}
 	}
 
 	[RPC]
-	void clientFiredBlock(Vector3 spawnPos, float facingDirection, uLink.NetworkViewID viewID) {
-		BlockSpawner.Instance.createShootingBlockAtLocation(spawnPos, facingDirection, viewID);
+	void clientFiredBlock(Vector3 spawnPos, Constant.FacingDirection facingDirection, Color playerColor, uLink.NetworkViewID viewID) {
+		BlockSpawner.Instance.createShootingBlockAtLocation(spawnPos, facingDirection, playerColor, viewID);
 		carriedBlock.SetActive(false);
 	}
 

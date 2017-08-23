@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Constants;
 using Prime31;
 
 public class FallingBlock: Block {
+	/*
 	void OnEnable() {
 		blockController.onControllerCollidedEvent += onEnterTrigger;
 	}
@@ -11,7 +13,7 @@ public class FallingBlock: Block {
 	void onEnterTrigger(RaycastHit2D collision) {
 		// If boundary is hit on the Server, destroy this Block
 		// If boundary is hit on the Client, request latest position from Server for this Block
-		if (collision.transform.gameObject.layer == LayerMask.NameToLayer(Constants.LAYER_BOUNDARY)) {
+		if (collision.transform.gameObject.layer == LayerMask.NameToLayer(Constant.LAYER_BOUNDARY)) {
 			if (uLink.Network.isServer) {
 				uLink.Network.Destroy(uLink.NetworkView.Get(this));
 			} else {
@@ -19,13 +21,14 @@ public class FallingBlock: Block {
 			}
 		}
 
-		if (collision.transform.gameObject.layer != LayerMask.NameToLayer(Constants.LAYER_FALLINGBLOCK) && collision.transform.gameObject.layer != LayerMask.NameToLayer(Constants.LAYER_PLATFORM)) {
+		if (collision.transform.gameObject.layer != LayerMask.NameToLayer(Constant.LAYER_FALLINGBLOCK) && collision.transform.gameObject.layer != LayerMask.NameToLayer(Constant.LAYER_PLATFORM)) {
 			blockController.collisionState.reset();
 		}
-	}
+	}*/
 	
 	void Update () {
 		if (!blockController.isGrounded) {
+			// Always move Falling Block downwards
 			blockController.move(new Vector3(0, -1*speed*Time.deltaTime, 0));
 		}
 	}

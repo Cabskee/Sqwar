@@ -1,32 +1,36 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Constants;
 
 public class BlockSpawner: MonoBehaviour {
 	public static BlockSpawner Instance = null;
 
-	[Header("GameObjects")]
+	[Header("Block GameObjects")]
 	public GameObject fallingBlock;
 	public GameObject fallingBlockParent;
 
+	public GameObject shootingBlock;
+	public GameObject shootingBlockParent;
+
 	// Spawn Variables
-	[Header("Spawn Timings")]
+	[Header("Block Spawn Settings")]
 	public Vector2 mapSpawnWidth;
 	public Vector2 spawnTimeInterval;
+	public int blocksSpawned = 1;
 	float lastSpawnTime;
 
 	// Speed Variables
-	[Header("Fall Speed")]
+	[Header("Block Fall Speeds")]
 	public float increaseFallSpeedIn;
 	public float increaseFallSpeedBy;
 	public float baseFallSpeed;
 	public float currentFallSpeed;
 	float fallSpeedCounter;
 
-	[Header("Shooting Speed")]
-	public float shootingSpeed;
-
-	public int blocksSpawned = 1;
+	[Header("Block Shooting Speeds")]
+	public float baseShootingSpeed;
+	public float currentShootingSpeed;
 
 	void Awake() {
 		if (Instance == null) {
@@ -69,8 +73,8 @@ public class BlockSpawner: MonoBehaviour {
 		blocksSpawned++;
 	}
 
-	public void createShootingBlockAtLocation(Vector3 spawnPos, float directionFacing, uLink.NetworkViewID viewID) {
-		GameObject shootingBlock = TrashMan.Instantiate(GameHandler.Instance.shootingBlock, spawnPos, Quaternion.identity);
-		shootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, shootingSpeed, directionFacing, viewID);
+	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, uLink.NetworkViewID viewID) {
+		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor, viewID);
 	}
 }

@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Constants;
 using Prime31;
 
 public class Block: MonoBehaviour {
 	protected CharacterController2D blockController;
 
+	public Constant.FacingDirection shotDirection;
 	public float speed;
 
 	void Awake() {
@@ -22,20 +24,23 @@ public class Block: MonoBehaviour {
 		initialize(numberSpawned, speed, uLink.Network.AllocateViewID(uLink.NetworkPlayer.server));
 	}
 	public void initialize(int numberSpawned, float speed, uLink.NetworkViewID viewID) {
-		initialize(numberSpawned, speed, 1f, viewID);
+		initialize(numberSpawned, speed, Constant.FacingDirection.Down, Color.white, viewID);
 	}
-	public void initialize(int numberSpawned, float speed, float facingDirection, uLink.NetworkViewID viewID) {
+	public void initialize(int numberSpawned, float speed, Constant.FacingDirection facingDirection, Color blockColor, uLink.NetworkViewID viewID) {
 		// Set GameObject name for sanity reasons
 		gameObject.name = "Block "+numberSpawned;
 
 		// Set NetworkViewID & owner
 		uLink.NetworkView.Get(this).SetViewID(viewID, viewID.allocator);
 
-		// Set block falling speed
+		// Set block falling speed from Server
 		this.speed = speed;
 
-		// Set block facing
-		transform.localScale = new Vector3(facingDirection, transform.localScale.y, transform.localScale.y);
+		// Set block color based on Player
+		this.GetComponent<SpriteRenderer>().color = blockColor;
+
+		// Set block facing based on Player
+		this.shotDirection = facingDirection;
 	}
 
 	// Refreshes the position of this Block on a specific or all client(s)

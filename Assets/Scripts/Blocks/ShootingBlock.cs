@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Constants;
 using Prime31;
 
 public class ShootingBlock: Block {
@@ -16,8 +17,24 @@ public class ShootingBlock: Block {
 	}
 	
 	void Update () {
-		Vector3 blockVelocity = new Vector3(transform.localScale.x * speed, 0f, 0f);
-		blockController.move(blockVelocity * Time.deltaTime);
+		Vector3 moveDirection = Vector3.zero;
+		switch(shotDirection) {
+			case Constant.FacingDirection.Down:
+				moveDirection.y = -1 * speed * Time.deltaTime;
+				break;
+			case Constant.FacingDirection.Up:
+				moveDirection.y = 1 * speed * Time.deltaTime;
+				break;
+			case Constant.FacingDirection.Left:
+				moveDirection.x = -1 * speed * Time.deltaTime;
+				break;
+			case Constant.FacingDirection.Right:
+			default:
+				moveDirection.x = 1 * speed * Time.deltaTime;
+				break;
+		}
+
+		blockController.move(moveDirection);
 	}
 
 	public void setDirectionFacing(float direction) {

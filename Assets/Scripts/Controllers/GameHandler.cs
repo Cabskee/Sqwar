@@ -9,9 +9,6 @@ public class GameHandler: MonoBehaviour {
 	public GameObject playerObject;
 	public int startingLives;
 
-	[Header("Gameplay")]
-	public GameObject shootingBlock;
-
 	public List<GameObject> players = new List<GameObject>();
 
 	void Awake() {
