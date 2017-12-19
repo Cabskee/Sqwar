@@ -10,7 +10,7 @@ namespace Constants {
 		public const string LAYER_FALLINGBLOCK = "Falling Block";
 		public const string LAYER_SHOOTINGBLOCK = "Shooting Block";
 
-		// For playing shooting
+		// Direction for shooting
 		public enum FacingDirection { Left, Right, Up, Down };
 	}
 }

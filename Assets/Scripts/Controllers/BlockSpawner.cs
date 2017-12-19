@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 
-public class BlockSpawner: MonoBehaviour {
+public class BlockSpawner: NetworkBehaviour {
 	public static BlockSpawner Instance = null;
 
 	[Header("Block GameObjects")]
@@ -41,40 +42,68 @@ public class BlockSpawner: MonoBehaviour {
 	}
 
 	void Start() {
-		if (!uLink.Network.isServer) {
-			Destroy(gameObject);
-		}
-
 		currentFallSpeed = baseFallSpeed;
 	}
 
 	void Update() {
-		if (uLink.Network.isServer) {
-			if (fallSpeedCounter < increaseFallSpeedIn) {
-				fallSpeedCounter += Time.deltaTime;
-			} else {
-				fallSpeedCounter = 0;
-				currentFallSpeed += increaseFallSpeedBy;
-			}
+		if (!isServer) {
+			return;
+		}
 
-			if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.x, spawnTimeInterval.y)) {
-				uLink.NetworkView.Get(this).RPC("createFallingBlockAtLocation", uLink.RPCMode.All, new Vector3(Random.Range(mapSpawnWidth.x, mapSpawnWidth.y), 10, 0));
-				lastSpawnTime = Time.time;
-			}
+		if (fallSpeedCounter < increaseFallSpeedIn) {
+			fallSpeedCounter += Time.deltaTime;
+		} else {
+			fallSpeedCounter = 0;
+			currentFallSpeed += increaseFallSpeedBy;
+		}
+
+		if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.x, spawnTimeInterval.y)) {
+			createFallingBlockAtLocation(new Vector3(Random.Range(mapSpawnWidth.x, mapSpawnWidth.y), 10, 0));
+			lastSpawnTime = Time.time;
 		}
 	}
 
-	[RPC]
-	void createFallingBlockAtLocation(Vector3 spawnPos) {
-		GameObject newBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
+	// FALLING BLOCKS
 
-		// Set falling speed & ViewID
-		newBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
+	void createFallingBlockAtLocation(Vector3 spawnPos) {
+		if (!isServer)
+			return;
+
+		GameObject newFallingBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
+		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
 		blocksSpawned++;
+
+		RpcCreateFallingBlockAtLocation(spawnPos);
 	}
 
-	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, uLink.NetworkViewID viewID) {
+	[ClientRpc]
+	void RpcCreateFallingBlockAtLocation(Vector3 spawnPos) {
+		if (isServer)
+			return;
+
+		GameObject newFallingBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
+		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
+	}
+
+	// SHOOTING BLOCKS
+
+	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor) {
+		if (!isServer)
+			return;
+
 		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
-		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor, viewID);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor);
+		blocksSpawned++;
+
+		RpcCreateShootingBlockAtLocation(spawnPos, directionFacing, playerColor);
+	}
+
+	[ClientRpc]
+	void RpcCreateShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor) {
+		if (isServer)
+			return;
+
+		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor);
 	}
 }

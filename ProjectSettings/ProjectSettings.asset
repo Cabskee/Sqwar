@@ -3,14 +3,15 @@
 --- !u!129 &1
 PlayerSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
+  serializedVersion: 13
   productGUID: 7168624073bfe4ac385f8324ff2d3828
   AndroidProfiler: 0
+  AndroidFilterTouchesWhenObscured: 0
   defaultScreenOrientation: 4
   targetDevice: 2
   useOnDemandResources: 0
   accelerometerFrequency: 0
-  companyName: Lilred
+  companyName: CBSK
   productName: Sqwar
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
@@ -40,8 +41,6 @@ PlayerSettings:
   m_SplashScreenLogos:
   - logo: {fileID: 21300000, guid: 7659924d7ee031d4d9cb71471cd7781e, type: 3}
     duration: 3
-  m_SplashScreenBackgroundLandscape: {fileID: 0}
-  m_SplashScreenBackgroundPortrait: {fileID: 0}
   m_VirtualRealitySplashScreen: {fileID: 0}
   m_HolographicTrackingLossScreen: {fileID: 0}
   defaultScreenWidth: 900
@@ -51,7 +50,6 @@ PlayerSettings:
   m_StereoRenderingPath: 0
   m_ActiveColorSpace: 0
   m_MTRendering: 1
-  m_MobileMTRendering: 0
   m_StackTraceTypes: 010000000100000001000000010000000100000001000000
   iosShowActivityIndicatorOnLoading: 0
   androidShowActivityIndicatorOnLoading: -1
@@ -66,8 +64,10 @@ PlayerSettings:
   useOSAutorotation: 1
   use32BitDisplayBuffer: 1
   disableDepthAndStencilBuffers: 0
+  androidBlitType: 0
   defaultIsFullScreen: 0
   defaultIsNativeResolution: 1
+  macRetinaSupport: 1
   runInBackground: 1
   captureSingleScreen: 0
   muteOtherAudioSources: 0
@@ -97,6 +97,7 @@ PlayerSettings:
   xboxEnableHeadOrientation: 0
   xboxEnableGuest: 0
   xboxEnablePIXSampling: 0
+  metalFramebufferOnly: 0
   n3dsDisableStereoscopicView: 0
   n3dsEnableSharedListOpt: 1
   n3dsEnableVSync: 0
@@ -105,6 +106,7 @@ PlayerSettings:
   xboxOneMonoLoggingLevel: 0
   xboxOneLoggingLevel: 1
   xboxOneDisableEsram: 0
+  xboxOnePresentImmediateThreshold: 0
   videoMemoryForVertexBuffers: 0
   psp2PowerMode: 0
   psp2AcquireBGM: 1
@@ -136,12 +138,17 @@ PlayerSettings:
     daydream:
       depthFormat: 0
       useSustainedPerformanceMode: 0
+      enableVideoLayer: 0
+      useProtectedVideoMemory: 0
     hololens:
       depthFormat: 1
   protectGraphicsMemory: 0
   useHDRDisplay: 0
+  m_ColorGamuts: 00000000
   targetPixelDensity: 0
   resolutionScalingMode: 0
+  androidSupportedAspectRatio: 1
+  androidMaxAspectRatio: 2.1
   applicationIdentifier:
     Android: ca.janian.sqwar
     Standalone: com.lilred.sqwar
@@ -228,7 +235,9 @@ PlayerSettings:
   AndroidKeyaliasName: 
   AndroidTVCompatibility: 1
   AndroidIsGame: 1
+  AndroidEnableTango: 0
   androidEnableBanner: 1
+  androidUseLowAccuracyLocation: 0
   m_AndroidBanners:
   - width: 320
     height: 180
@@ -242,6 +251,7 @@ PlayerSettings:
       m_Icon: {fileID: 2800000, guid: 698fcb56cd7504a5b988886c8b8a437d, type: 3}
       m_Width: 128
       m_Height: 128
+      m_Kind: 0
   m_BuildTargetBatching:
   - m_BuildTarget: iPhone
     m_StaticBatching: 1
@@ -305,10 +315,14 @@ PlayerSettings:
   - m_BuildTarget: tvOS
     m_Enabled: 0
     m_Devices: []
+  m_BuildTargetEnableVuforiaSettings: []
   openGLRequireES31: 0
   openGLRequireES31AEP: 0
-  webPlayerTemplate: APPLICATION:No Context Menu
   m_TemplateCustomTags: {}
+  mobileMTRendering:
+    Android: 1
+    iPhone: 1
+    tvOS: 1
   wiiUTitleID: 0005000011000000
   wiiUGroupID: 00010000
   wiiUCommonSaveSize: 4096
@@ -442,6 +456,9 @@ PlayerSettings:
   switchUdpSendBufferSize: 9
   switchUdpReceiveBufferSize: 42
   switchSocketBufferEfficiency: 4
+  switchSocketInitializeEnabled: 1
+  switchNetworkInterfaceManagerInitializeEnabled: 1
+  switchPlayerConnectionEnabled: 1
   ps4NPAgeRating: 12
   ps4NPTitleSecret: 
   ps4NPTrophyPackPath: 

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
@@ -11,8 +12,8 @@ public class ShootingBlock: Block {
 
 	void checkForBoundary(RaycastHit2D hit) {
 		// If boundary is hit on the Server, destroy this Block
-		if (uLink.Network.isServer && hit.transform.gameObject.layer == LayerMask.NameToLayer("Boundary")) {
-			uLink.Network.Destroy(uLink.NetworkView.Get(this));
+		if (isServer && hit.transform.gameObject.layer == LayerMask.NameToLayer(Constants.Constant.LAYER_BOUNDARY)) {
+			NetworkServer.Destroy(gameObject);
 		}
 	}
 	

@@ -24,7 +24,8 @@ GameObject:
   - component: {fileID: 114384624437241884}
   - component: {fileID: 61662874445900608}
   - component: {fileID: 50901140623657110}
-  - component: {fileID: 114749732835929830}
+  - component: {fileID: 114449962579884886}
+  - component: {fileID: 114502958337903610}
   m_Layer: 11
   m_Name: Shooting Block
   m_TagString: Untagged
@@ -153,7 +154,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   totalHorizontalRays: 6
   totalVerticalRays: 4
---- !u!114 &114749732835929830
+--- !u!114 &114449962579884886
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -161,19 +162,51 @@ MonoBehaviour:
   m_GameObject: {fileID: 1898819407404888}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: -68052387, guid: b6514755f9868d8479e26d7ca3d69431, type: 3}
+  m_Script: {fileID: 372142912, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _parent: {fileID: 0}
-  _childIndex: -1
-  _children: []
-  stateSynchronization: 0
-  securable: 3
-  observed: {fileID: 114253787492330136}
-  _manualViewID: 0
-  rpcReceiver: 1
-  listOfGameObjects: []
-  _prefabRoot: {fileID: 1898819407404888}
+  m_SceneId:
+    m_Value: 0
+  m_AssetId:
+    i0: 104
+    i1: 117
+    i2: 250
+    i3: 109
+    i4: 198
+    i5: 215
+    i6: 233
+    i7: 228
+    i8: 8
+    i9: 155
+    i10: 90
+    i11: 173
+    i12: 236
+    i13: 118
+    i14: 132
+    i15: 38
+  m_ServerOnly: 0
+  m_LocalPlayerAuthority: 0
+--- !u!114 &114502958337903610
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1898819407404888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1768714887, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_TransformSyncMode: 1
+  m_SendInterval: 0.1
+  m_SyncRotationAxis: 3
+  m_RotationSyncCompression: 0
+  m_SyncSpin: 0
+  m_MovementTheshold: 0.001
+  m_VelocityThreshold: 0.0001
+  m_SnapThreshold: 5
+  m_InterpolateRotation: 1
+  m_InterpolateMovement: 1
 --- !u!212 &212129934740581530
 SpriteRenderer:
   m_ObjectHideFlags: 1
@@ -183,6 +216,7 @@ SpriteRenderer:
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -198,6 +232,7 @@ SpriteRenderer:
   m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
   m_SelectedEditorRenderState: 0
   m_MinimumChartSize: 4
   m_AutoUVMaxDistance: 0.5

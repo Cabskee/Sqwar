@@ -18,8 +18,4 @@ public class GameHandler: MonoBehaviour {
 			Destroy(this);
 		}
 	}
-
-	public void createPlayer(uLink.NetworkPlayer owner) {
-		uLink.Network.Instantiate(owner, playerObject, Vector3.zero, Quaternion.identity, 0, startingLives);
-	}
 }

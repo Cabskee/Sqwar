@@ -1,15 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using Com.LuisPedroFonseca.ProCamera2D;
+using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
 
-public class PlayerController: MonoBehaviour {
+public class PlayerController: NetworkBehaviour {
 	CharacterController2D charController;
 
+	[SyncVar]
 	public Color color;
+	[SyncVar]
 	public int livesLeft;
+	[SyncVar]
+	public Constant.FacingDirection facingDirection;
 
 	public GameObject carriedBlock;
 
@@ -28,29 +33,16 @@ public class PlayerController: MonoBehaviour {
 	Vector2 clientInput;
 	Vector3 clientVelocity;
 
-	Vector3 serverPosition;
-
 	void Awake() {
 		charController = GetComponent<CharacterController2D>();
 	}
 
-	void OnEnable() {
-		charController.onTriggerEnterEvent += onTriggerEnter;
-	}
-
-	void onTriggerEnter(Collider2D other) {
-		Debug.Log("OnTriggerEnter");
-	}
-	void OnTriggerEnter2D(Collider2D other) {
-		Debug.Log("OnTriggerEnter2D");
-	}
-
-	void uLink_OnNetworkInstantiate(uLink.NetworkMessageInfo info) {
-		livesLeft = info.networkView.initialData.Read<int>();
+	public override void OnStartServer() {
+		livesLeft = GameHandler.Instance.startingLives;
 	}
 
 	void Start() {
-		if (uLink.NetworkView.Get(this).isMine) {
+		if (isLocalPlayer) {
 			ProCamera2D.Instance.AddCameraTarget(transform);
 		}
 
@@ -68,10 +60,11 @@ public class PlayerController: MonoBehaviour {
 			clientVelocity.y = 0;
 		}
 
-		if (uLink.Network.isClient)
+		if (isClient) {
 			clientInput = Vector2.zero;
+		}
 
-		if (uLink.NetworkView.Get(this).isMine) { // Owner Movement & Actions
+		if (isLocalPlayer) { // Owner Movement & Actions
 			normalizedHorizontal = Input.GetAxisRaw("Horizontal");
 			clientInput.x = normalizedHorizontal;
 
@@ -81,55 +74,47 @@ public class PlayerController: MonoBehaviour {
 				clientInput.y = 1f;
 			}
 
-			// Rubberband player back to Server Position if he moves too far
-			if (Mathf.Abs(transform.position.x - serverPosition.x) >= (speed*0.5f)) {
-				transform.position = new Vector3(serverPosition.x, transform.position.y, 0);
-			}
-			if (Mathf.Abs(transform.position.y - serverPosition.y) >= (jumpHeight*0.9f)) {
-				transform.position = new Vector3(transform.position.x, serverPosition.y, 0);
+			if (Input.GetKey(KeyCode.W)) {
+				facingDirection = Constant.FacingDirection.Up;
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 90));
+			} else if (Input.GetKey(KeyCode.A)) {
+				facingDirection = Constant.FacingDirection.Left;
+				transform.localScale = new Vector3(-1, 1, 1);
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+			} else if (Input.GetKey(KeyCode.S)) {
+				facingDirection = Constant.FacingDirection.Down;
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, -90));
+			} else if (Input.GetKey(KeyCode.D)) {
+				facingDirection = Constant.FacingDirection.Right;
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
 			}
 
 			// Pickup a nearby block or fire a carried block
 			if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
 				if (!isCarryingBlock()) { // Pick up the closest Block
-					GameObject pickUpBlock = findNearestFallenBlock();
-					if (pickUpBlock) {
+					if (findNearestFallenBlock()) {
 						// Tell the server you picked up this block and pick it up clientside
-						uLink.NetworkView.Get(this).RPC("receiveClientPickUpInput", uLink.RPCMode.Server);
+						CmdRequestToPickupBlock();
 						carriedBlock.SetActive(true);
 					}
 				} else { // Fire a Carried Block
-					Constant.FacingDirection facingDirection = Constant.FacingDirection.Right;
-					if (Input.GetKey(KeyCode.W)) {
-						facingDirection = Constant.FacingDirection.Up;
-					} else if (Input.GetKey(KeyCode.S)) {
-						facingDirection = Constant.FacingDirection.Down;
-					} else if ((int)transform.localScale.x != 1) {
-						facingDirection = Constant.FacingDirection.Left;
-					}
-					uLink.NetworkView.Get(this).RPC("clientRequestsToFireBlock", uLink.RPCMode.Server, facingDirection);
+					CmdRequestToFireBlock(facingDirection);
 				}
 			}
-		} else if (uLink.Network.isServer) { // Server Movement (Using Input from Client)
+		} else if (isServer) { // Server Movement (Using Input from Client)
 			normalizedHorizontal = clientInput.x;
 			if (clientInput.y == 1f && (charController.isGrounded || !jumpedSinceGrounded)) {
 				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
 				jumpedSinceGrounded = true;
 			}
-		} else if (uLink.Network.isClient) { // Proxy Movement (Carbon copy of Server movement)
-			float proxyScale = (serverPosition.x > transform.position.x) ? 1 : -1;
-			transform.localScale = new Vector3(proxyScale, 1, 1);
-			transform.position = serverPosition;
-			return;
 		}
 
 		// Apply horizontal speed smoothing
 		float smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
 		clientVelocity.x = Mathf.Lerp(clientVelocity.x, normalizedHorizontal * speed, Time.deltaTime*smoothedMovement);
-
-		// Face the player left or right based on movement
-		if (normalizedHorizontal != 0f)
-			transform.localScale = new Vector3(normalizedHorizontal, 1, 1);
 
 		// Apply downward gravity
 		clientVelocity.y += -gravity * Time.deltaTime;
@@ -140,6 +125,8 @@ public class PlayerController: MonoBehaviour {
 		// Update latest clientVelocity
 		clientVelocity = charController.velocity;
 	}
+
+	// HELPER FUNCTIONS
 
 	public bool isCarryingBlock() {
 		return carriedBlock.activeSelf;
@@ -158,67 +145,46 @@ public class PlayerController: MonoBehaviour {
 		return nearestBlock;
 	}
 
-	void FixedUpdate() {
-		// Owner sends current Input to the Server every FixedUpdate
-		if (uLink.NetworkView.Get(this).isMine) {
-			uLink.NetworkView.Get(this).UnreliableRPC("receiveClientMovementInput", uLink.RPCMode.Server, clientInput);
-		}
+	// PICKING UP BLOCK
 
-		// Server sends current Position to every Client every FixedUpdate
-		if (uLink.Network.isServer) {
-			uLink.NetworkView.Get(this).UnreliableRPC("receivePositionFromServer", uLink.RPCMode.All, transform.position);
+	[Command]
+	void CmdRequestToPickupBlock() {
+		GameObject nearestBlock = null;
+		if (!isCarryingBlock()) {
+			nearestBlock = findNearestFallenBlock();
+			if (nearestBlock) {
+				NetworkServer.Destroy(nearestBlock);
+				carriedBlock.SetActive(true);
+				RpcPickedUpBlock(true);
+			}
 		}
+	}
+
+	[ClientRpc]
+	void RpcPickedUpBlock(bool pickedUp) {
+		if (isServer)
+			return;
+
+		carriedBlock.SetActive(pickedUp);
 	}
 
 	// THROWING BLOCK
 
-	[RPC]
-	void clientRequestsToFireBlock(Constant.FacingDirection facingDirection) {
-		if (uLink.Network.isServer && isCarryingBlock()) {
-			uLink.NetworkViewID blockViewID = uLink.Network.AllocateViewID(uLink.Network.player);
-			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, blockViewID);
-			uLink.NetworkView.Get(this).RPC("clientFiredBlock", uLink.RPCMode.Others, carriedBlock.transform.position, facingDirection, color, blockViewID);
+	[Command]
+	void CmdRequestToFireBlock(Constant.FacingDirection facingDirection) {
+		if (isCarryingBlock()) {
+			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color);
+
 			carriedBlock.SetActive(false);
+			RpcFiredBlock();
 		}
 	}
 
-	[RPC]
-	void clientFiredBlock(Vector3 spawnPos, Constant.FacingDirection facingDirection, Color playerColor, uLink.NetworkViewID viewID) {
-		BlockSpawner.Instance.createShootingBlockAtLocation(spawnPos, facingDirection, playerColor, viewID);
+	[ClientRpc]
+	void RpcFiredBlock() {
+		if (isServer)
+			return;
+
 		carriedBlock.SetActive(false);
-	}
-
-	// PICKING UP BLOCK
-
-	[RPC]
-	void receiveClientPickUpInput() {
-		if (uLink.Network.isServer) {
-			GameObject nearestBlock = findNearestFallenBlock();
-			if (nearestBlock && !isCarryingBlock()) {
-				uLink.Network.Destroy(nearestBlock.GetComponent<uLink.NetworkView>());
-			}
-			uLink.NetworkView.Get(this).RPC("receivePickUpResponseFromServer", uLink.RPCMode.All, (nearestBlock && !isCarryingBlock()));
-		}
-	}
-
-	[RPC]
-	void receivePickUpResponseFromServer(bool pickedUp) {
-		carriedBlock.SetActive(pickedUp);
-	}
-
-	// MOVEMENT
-
-	// Server receiving X/Y movement input from a Client
-	[RPC]
-	void receiveClientMovementInput(Vector2 clientInput) {
-		if (uLink.Network.isServer) {
-			this.clientInput = clientInput;
-		}
-	}
-
-	// Client receiving latest X/Y movement from the Server
-	[RPC]
-	void receivePositionFromServer(Vector3 serverPosition) {
-		this.serverPosition = serverPosition;
 	}
 }
