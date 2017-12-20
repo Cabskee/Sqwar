@@ -11,7 +11,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     }
 
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-rails/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-rails/")]
     #endif
     public class ProCamera2DRails : BasePC2D, IPreMover
     {
@@ -51,7 +51,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (CameraTargets.Count == 0)
                 enabled = false;
 
-            ProCamera2D.Instance.AddPreMover(this);
+            ProCamera2D.AddPreMover(this);
 
             Step();
         }
@@ -60,7 +60,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             base.OnDestroy();
 
-            ProCamera2D.RemovePreMover(this);
+            if(ProCamera2D)
+                ProCamera2D.RemovePreMover(this);
         }
 
         #region IPreMover implementation

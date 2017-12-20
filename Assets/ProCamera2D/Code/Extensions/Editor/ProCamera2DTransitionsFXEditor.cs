@@ -36,7 +36,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // ProCamera2D
             _tooltip = new GUIContent("Pro Camera 2D", "");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
             if (proCamera2DTransitionsFX.ProCamera2D == null)
                 EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);
@@ -139,6 +139,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             EditorGUILayout.Space();
             _tooltip = new GUIContent("Start Scene On Enter State", "If selected, on scene start the Enter FX will be loaded.");
             EditorGUILayout.PropertyField(serializedObject.FindProperty("StartSceneOnEnterState"), _tooltip);
+            
+            // Ignore delta time
+            _tooltip = new GUIContent("Use Realtime", "If selected, the transitions will play independently of the current deltaTime.");
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("UseRealtime"), _tooltip);
 
 
             // Limit values

@@ -41,7 +41,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// ProCamera2D
 			_tooltip = new GUIContent("Pro Camera 2D", "");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
 			_tooltip = new GUIContent("Use Numeric Boundaries", "Should the camera position be constrained by position?");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("UseNumericBoundaries"), _tooltip);

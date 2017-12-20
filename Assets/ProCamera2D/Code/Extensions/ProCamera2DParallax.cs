@@ -23,7 +23,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     }
 
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-parallax/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-parallax/")]
     #endif
     [ExecuteInEditMode]
     public class ProCamera2DParallax : BasePC2D, IPostMover
@@ -88,14 +88,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             }
             #endif
 
-            ProCamera2D.Instance.AddPostMover(this);
+            ProCamera2D.AddPostMover(this);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-
-            ProCamera2D.RemovePostMover(this);
+            
+            if(ProCamera2D)
+                ProCamera2D.RemovePostMover(this);
         }
 
         #region IPostMover implementation
@@ -157,6 +158,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             {
                 if (ParallaxLayers[i].CameraTransform != null)
                 {
+                    // Rect
+                    ParallaxLayers[i].ParallaxCamera.rect = ProCamera2D.GameCamera.rect;
+                    
                     // Position
                     float x = ParallaxHorizontal ? Vector3H(rootOffset) * ParallaxLayers[i].Speed : Vector3H(rootOffset);
                     float y = ParallaxVertical ? Vector3V(rootOffset) * ParallaxLayers[i].Speed : Vector3V(rootOffset);

@@ -3,9 +3,27 @@ using UnityEngine;
 
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
-    abstract public class BasePC2D : MonoBehaviour
+    public abstract class BasePC2D : MonoBehaviour
     {
-        public ProCamera2D ProCamera2D;
+        public ProCamera2D ProCamera2D
+        {
+            get
+            {
+                if (_pc2D != null) return _pc2D;
+                
+                if (Camera.main != null)
+                    _pc2D = Camera.main.GetComponent<ProCamera2D>();
+                    
+                if (_pc2D == null)
+                    _pc2D = FindObjectOfType(typeof(ProCamera2D)) as ProCamera2D;
+                
+                return _pc2D;
+            }
+
+            set { _pc2D = value; }
+        }
+        [SerializeField]
+        private ProCamera2D _pc2D;
 
         protected Func<Vector3, float> Vector3H;
         protected Func<Vector3, float> Vector3V;
@@ -20,17 +38,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         protected virtual void Awake()
         {
             _transform = transform;
-
-            if (ProCamera2D == null && Camera.main != null)
-                ProCamera2D = Camera.main.GetComponent<ProCamera2D>();
-            else if (ProCamera2D == null)
-                ProCamera2D = FindObjectOfType(typeof(ProCamera2D)) as ProCamera2D;
-            
-            if (ProCamera2D == null)
-            {
-                Debug.LogWarning(GetType().Name + ": ProCamera2D not found! Please add the ProCamera2D.cs component to your main camera.");
-                return;
-            }
 
             if(enabled)
                 Enable();
@@ -60,28 +67,28 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         void Enable()
         {
-            if (_enabled || ProCamera2D == null)
+            if (_enabled || _pc2D == null)
                 return;
             
             _enabled = true;
-            ProCamera2D.OnReset += OnReset;
+            _pc2D.OnReset += OnReset;
         }
 
         void Disable()
         {
-            if (ProCamera2D != null && _enabled)
+            if (_pc2D != null && _enabled)
             {
                 _enabled = false;
-                ProCamera2D.OnReset -= OnReset;
+                _pc2D.OnReset -= OnReset;
             }
         }
 
         void ResetAxisFunctions()
         {
-            if (Vector3H != null)
+            if (Vector3H != null || _pc2D == null)
                 return;
 
-            switch (ProCamera2D.Axis)
+            switch (_pc2D.Axis)
             {
                 case MovementAxis.XY:
                     Vector3H = vector => vector.x;
@@ -115,14 +122,14 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (!enabled)
                 return;
 
-            if (ProCamera2D == null && Camera.main != null)
-                ProCamera2D = Camera.main.GetComponent<ProCamera2D>();
+            if (_pc2D == null && Camera.main != null)
+                _pc2D = Camera.main.GetComponent<ProCamera2D>();
 
-            if (ProCamera2D == null)
+            if (_pc2D == null)
                 return;
 
             // Don't draw gizmos on other cameras
-            if (Camera.current != ProCamera2D.GameCamera &&
+            if (Camera.current != _pc2D.GameCamera &&
                 ((UnityEditor.SceneView.lastActiveSceneView != null && Camera.current != UnityEditor.SceneView.lastActiveSceneView.camera) ||
                 (UnityEditor.SceneView.lastActiveSceneView == null)))
                 return;
@@ -136,8 +143,39 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             DrawGizmos();
         }
+        
+        void OnDrawGizmosSelected()
+        {
+            if (!enabled)
+                return;
+
+            if (_pc2D == null && Camera.main != null)
+                _pc2D = Camera.main.GetComponent<ProCamera2D>();
+
+            if (_pc2D == null)
+                return;
+
+            // Don't draw gizmos on other cameras
+            if (Camera.current != _pc2D.GameCamera &&
+                ((UnityEditor.SceneView.lastActiveSceneView != null && Camera.current != UnityEditor.SceneView.lastActiveSceneView.camera) ||
+                 (UnityEditor.SceneView.lastActiveSceneView == null)))
+                return;
+
+            ResetAxisFunctions();
+
+            // HACK to prevent Unity bug on startup: http://forum.unity3d.com/threads/screen-position-out-of-view-frustum.9918/
+            _drawGizmosCounter++;
+            if (_drawGizmosCounter < 5 && UnityEditor.EditorApplication.timeSinceStartup < 60f)
+                return;
+
+            DrawGizmosSelected();
+        }
 
         protected virtual void DrawGizmos()
+        {
+        }
+        
+        protected virtual void DrawGizmosSelected()
         {
         }
         #endif

@@ -29,6 +29,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
 
 			var proCamera2DRooms = (ProCamera2DRooms)target;
+			
+			if (proCamera2DRooms.ProCamera2D == null)
+				return;
 
 			// Add Numeric Boundaries component if needed
 			var numericBoundaries = proCamera2DRooms.ProCamera2D.GetComponent<ProCamera2DNumericBoundaries>();
@@ -215,7 +218,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			var proCamera2DRooms = (ProCamera2DRooms)target;
 
 			if (proCamera2DRooms.ProCamera2D == null)
+			{
 				EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);
+				return;
+			}
 
 			serializedObject.Update();
 
@@ -226,7 +232,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// ProCamera2D
 			_tooltip = new GUIContent("Pro Camera 2D", "");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 			EditorGUILayout.Space();
 
 			// Rooms List
@@ -301,6 +307,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		void OnSceneGUI()
 		{
 			var proCamera2DRooms = (ProCamera2DRooms)target;
+			
+			if (proCamera2DRooms.ProCamera2D == null)
+				return;
 
 			// Text style for room numbers
 			var guiStyle = new GUIStyle();

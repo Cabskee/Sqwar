@@ -36,7 +36,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// ProCamera2D
 			_tooltip = new GUIContent("Pro Camera 2D", "");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
 			if (proCamera2DPanAndZoom.ProCamera2D == null)
 				EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);
@@ -99,6 +99,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				if (proCamera2DPanAndZoom.UsePanByDrag)
 				{
 					EditorGUI.indentLevel = 2;
+					// Pan mouse button
+					_tooltip = new GUIContent("Drag Mouse Button", "Which mouse button do you want to use for panning? Only applicable if mouse is used");
+					EditorGUILayout.PropertyField(serializedObject.FindProperty("PanMouseButton"), _tooltip);
+					
 					_tooltip = new GUIContent("Drag Speed Multiplier", "The speed at which to pan the camera");
 					EditorGUILayout.PropertyField(serializedObject.FindProperty("DragPanSpeedMultiplier"), _tooltip);
 
@@ -131,6 +135,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 					_tooltip = new GUIContent("Right Pan Edge", "If the mouse pointer goes beyond this edge the camera will start moving horizontally");
 					EditorGUILayout.PropertyField(serializedObject.FindProperty("RightPanEdge"), _tooltip);
+					EditorGUI.indentLevel = 1;
 				}
 
 				EditorGUI.indentLevel = 0;

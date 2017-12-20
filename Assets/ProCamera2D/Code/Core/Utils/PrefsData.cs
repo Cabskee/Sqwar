@@ -74,5 +74,11 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         public static Color RoomsColorValue = Color.red;
 
         public static float RoomsSnapping = .1f;
+	    
+	    // Content Fitter
+	    public static string FitterFillColorKey = "Fitter Fill";
+	    public static Color FitterFillColorValue = new Color(1f, 1f, 1f, 0.1f);
+	    public static string FitterLineColorKey = "Fitter Line";
+	    public static Color FitterLineColorValue = new Color(1f, 1f, 1f, 0.6f);
     }
 }

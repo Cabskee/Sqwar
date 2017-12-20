@@ -440,14 +440,14 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 
 
-
             // Divider
             GUILayout.Box("", new GUILayoutOption[]{ GUILayout.ExpandWidth(true), GUILayout.Height(1) });
             GUILayout.Label("EXTENSIONS", EditorStyles.boldLabel);
-
+            EditorGUILayout.Space();
 
 
             // Extensions
+            GUI.color = Color.white;
             for (int i = 0; i < _extensions.Count; i++)
             {
                 EditorGUILayout.BeginHorizontal();
@@ -485,7 +485,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             GUI.color = Color.white;
             GUILayout.Box("", new GUILayoutOption[]{ GUILayout.ExpandWidth(true), GUILayout.Height(1) });
             GUILayout.Label("TRIGGERS", EditorStyles.boldLabel);
-
+            EditorGUILayout.Space();
 
 
             // Triggers

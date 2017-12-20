@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 
 namespace Com.LuisPedroFonseca.ProCamera2D
@@ -6,33 +7,46 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     [ExecuteInEditMode]
     public class ProCamera2DLetterbox : MonoBehaviour
     {
-        [Range(0, .5f)]
-        public float Amount = 0f;
+        [Range(0, .5f)] public float Amount = 0f;
 
         public Color Color;
 
         Material _material;
 
+        private int TopPropertyID;
+        private int BottomPropertyID;
+        private int ColorPropertyID;
+
+        private float _previousAmount = float.MaxValue;
+
         Material material
         {
             get
             {
-                if (_material == null)
-                {
-                    _material = new Material(Shader.Find("Hidden/ProCamera2D/Letterbox"));
-                    _material.hideFlags = HideFlags.HideAndDontSave;  
-                }
+                if (_material != null) return _material;
+
+                _material = new Material(Shader.Find("Hidden/ProCamera2D/Letterbox")) {hideFlags = HideFlags.HideAndDontSave};
                 return _material;
             }
         }
 
-        void Start()
+        private void OnEnable()
         {
             if (!SystemInfo.supportsImageEffects)
             {
                 enabled = false;
-                return;
             }
+            
+            _previousAmount = float.MaxValue;
+            
+            if(TopPropertyID == 0)
+                TopPropertyID = Shader.PropertyToID("_Top");
+            
+            if(BottomPropertyID == 0)
+                BottomPropertyID = Shader.PropertyToID("_Bottom");
+            
+            if(ColorPropertyID == 0)
+                ColorPropertyID = Shader.PropertyToID("_Color");
         }
 
         void OnRenderImage(RenderTexture sourceTexture, RenderTexture destTexture)
@@ -43,18 +57,23 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 return;
             }
 
-            Amount = Mathf.Clamp01(Amount);
-            material.SetFloat("_Top", 1 - Amount);
-            material.SetFloat("_Bottom", Amount);
-            material.SetColor("_Color", Color);
+            if (Math.Abs(Amount - _previousAmount) > 0.0001f)
+            {
+                Amount = Mathf.Clamp01(Amount);
+                material.SetFloat(TopPropertyID, 1 - Amount);
+                material.SetFloat(BottomPropertyID, Amount);
+                material.SetColor(ColorPropertyID, Color);
+            }
+
             Graphics.Blit(sourceTexture, destTexture, material);
+            _previousAmount = Amount;
         }
 
         void OnDisable()
         {
             if (_material)
             {
-                DestroyImmediate(_material);  
+                DestroyImmediate(_material);
             }
         }
 

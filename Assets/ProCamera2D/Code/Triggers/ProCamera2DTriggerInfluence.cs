@@ -4,7 +4,7 @@ using System.Collections;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/trigger-influence/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/trigger-influence/")]
     #endif
     public class ProCamera2DTriggerInfluence : BaseTrigger
     {

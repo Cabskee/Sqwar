@@ -12,6 +12,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             if (target.ProCamera2D == null)
                 target.ProCamera2D = FindObjectOfType<ProCamera2D>();
+            
+            if (target.ProCamera2D == null)
+                Debug.LogError("No ProCamera2D component found. Please add one to your camera.");
         }
     }
 }

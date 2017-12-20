@@ -46,9 +46,8 @@ public class BlockSpawner: NetworkBehaviour {
 	}
 
 	void Update() {
-		if (!isServer) {
+		if (!isServer)
 			return;
-		}
 
 		if (fallSpeedCounter < increaseFallSpeedIn) {
 			fallSpeedCounter += Time.deltaTime;

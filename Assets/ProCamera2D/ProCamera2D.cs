@@ -11,13 +11,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     /// All extensions and triggers have a reference to an instance of this class.
     /// </summary>
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/core/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/core/")]
     #endif
     [RequireComponent(typeof(Camera))]
     public class ProCamera2D : MonoBehaviour, ISerializationCallbackReceiver
     {
 		public const string Title = "Pro Camera 2D";
-        public static readonly Version Version = new Version("2.4.6");
+        public static readonly Version Version = new Version("2.5.3");
 
         #region Inspector Variables
 
@@ -124,31 +124,19 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         public Vector3 LocalPosition { get { return _transform.localPosition; } set { _transform.localPosition = value; } }
 
-        public Vector2 ScreenSizeInWorldCoordinates { get { return _screenSizeInWorldCoordinates; } }
+        public Vector2 ScreenSizeInWorldCoordinates { get; private set; }
 
-        Vector2 _screenSizeInWorldCoordinates;
+        public Vector3 PreviousTargetsMidPoint { get; private set; }
 
-        public Vector3 PreviousTargetsMidPoint { get { return _previousTargetsMidPoint; } }
+        public Vector3 TargetsMidPoint { get; private set; }
 
-        Vector3 _previousTargetsMidPoint;
+        public Vector3 CameraTargetPosition { get; private set; }
 
-        public Vector3 TargetsMidPoint { get { return _targetsMidPoint; } }
+        public float DeltaTime { get; private set; }
 
-        Vector3 _targetsMidPoint;
+        public Vector3 ParentPosition { get; private set; }
 
-        public Vector3 CameraTargetPosition { get { return _cameraTargetPosition; } }
-
-        Vector3 _cameraTargetPosition;
-
-        public float DeltaTime { get { return _deltaTime; } }
-
-        float _deltaTime;
-
-        public Vector3 ParentPosition { get { return _parentPosition; } }
-
-        Vector3 _parentPosition;
-
-		public Vector3 InfluencesSum { get { return _influencesSum; } }
+        public Vector3 InfluencesSum { get { return _influencesSum; } }
 		Vector3 _influencesSum = Vector3.zero;
 
         #endregion
@@ -159,6 +147,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         public Action<float> PreMoveUpdate;
         public Action<float> PostMoveUpdate;
         public Action<Vector2> OnCameraResize;
+        public Action<float> OnUpdateScreenSizeFinished;
+        public Action<float> OnDollyZoomFinished;
         
         public Action OnReset;
 
@@ -229,7 +219,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // Get parent position
             if (_transform.parent != null)
-                _parentPosition = _transform.parent.position;
+                ParentPosition = _transform.parent.position;
 
             if (GameCamera == null)
                 GameCamera = GetComponent<Camera>();
@@ -272,10 +262,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             SortPostMovers();
 
             // Set some values ahead of the update loop so that other extensions can use them on Awake/Start
-            _targetsMidPoint = GetTargetsWeightedMidPoint(ref CameraTargets);
-            _cameraTargetHorizontalPositionSmoothed = Vector3H(_targetsMidPoint);
-            _cameraTargetVerticalPositionSmoothed = Vector3V(_targetsMidPoint);
-            _deltaTime = Time.deltaTime;
+            TargetsMidPoint = GetTargetsWeightedMidPoint(ref CameraTargets);
+            _cameraTargetHorizontalPositionSmoothed = Vector3H(TargetsMidPoint);
+            _cameraTargetVerticalPositionSmoothed = Vector3V(TargetsMidPoint);
+            DeltaTime = Time.deltaTime;
 
             // Center on target
             if (CenterTargetOnStart && CameraTargets.Count > 0)
@@ -284,15 +274,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 var cameraTargetPositionX = FollowHorizontal ? Vector3H(targetsMidPoint) : Vector3H(_transform.localPosition);
                 var cameraTargetPositionY = FollowVertical ? Vector3V(targetsMidPoint) : Vector3V(_transform.localPosition);
                 var finalPos = new Vector2(cameraTargetPositionX, cameraTargetPositionY);
-                finalPos += new Vector2(GetOffsetX() - Vector3H(_parentPosition), GetOffsetY() - Vector3V(_parentPosition));
+                finalPos += new Vector2(GetOffsetX() - Vector3H(ParentPosition), GetOffsetY() - Vector3V(ParentPosition));
                 MoveCameraInstantlyToPosition(finalPos);
             }
             else
             {
-                _cameraTargetPosition = _transform.position - _parentPosition;
-                _cameraTargetHorizontalPositionSmoothed = Vector3H(_cameraTargetPosition);
+                CameraTargetPosition = _transform.position - ParentPosition;
+                _cameraTargetHorizontalPositionSmoothed = Vector3H(CameraTargetPosition);
                 _previousCameraTargetHorizontalPositionSmoothed = _cameraTargetHorizontalPositionSmoothed;
-                _cameraTargetVerticalPositionSmoothed = Vector3V(_cameraTargetPosition);
+                _cameraTargetVerticalPositionSmoothed = Vector3V(CameraTargetPosition);
                 _previousCameraTargetVerticalPositionSmoothed = _cameraTargetVerticalPositionSmoothed;
             }
         }
@@ -502,10 +492,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         /// </summary>
         public void ResetMovement()
         {
-            _cameraTargetPosition = _transform.localPosition;
+            CameraTargetPosition = _transform.localPosition;
 
-            _cameraTargetHorizontalPositionSmoothed = Vector3H(_cameraTargetPosition);
-            _cameraTargetVerticalPositionSmoothed = Vector3V(_cameraTargetPosition);
+            _cameraTargetHorizontalPositionSmoothed = Vector3H(CameraTargetPosition);
+            _cameraTargetVerticalPositionSmoothed = Vector3V(CameraTargetPosition);
 
             _previousCameraTargetHorizontalPositionSmoothed = _cameraTargetHorizontalPositionSmoothed;
             _previousCameraTargetVerticalPositionSmoothed = _cameraTargetVerticalPositionSmoothed;
@@ -571,7 +561,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         public void CalculateScreenSize()
         {
             GameCamera.ResetAspect();
-            _screenSizeInWorldCoordinates = Utils.GetScreenSizeInWorldCoords(GameCamera, Mathf.Abs(Vector3D(_transform.localPosition)));
+            ScreenSizeInWorldCoordinates = Utils.GetScreenSizeInWorldCoords(GameCamera, Mathf.Abs(Vector3D(_transform.localPosition)));
             _previousScreenWidth = Screen.width;
             _previousScreenHeight = Screen.height;
         }
@@ -582,7 +572,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         /// <param name="easeType">The easing method to apply. Only used when the duration is bigger than 0</param>
         public void Zoom(float zoomAmount, float duration = 0f, EaseType easeType = EaseType.EaseInOut)
         {
-            UpdateScreenSize(_screenSizeInWorldCoordinates.y * .5f + zoomAmount, duration, easeType);
+            UpdateScreenSize(ScreenSizeInWorldCoordinates.y * .5f + zoomAmount, duration, easeType);
         }
 
 
@@ -613,7 +603,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 _transform.localPosition = VectorHVD(
                     Vector3H(_transform.localPosition), 
                     Vector3V(_transform.localPosition), 
-                    GetCameraDistanceForFOV(GameCamera.fieldOfView, _screenSizeInWorldCoordinates.y) * _originalCameraDepthSign);
+                    GetCameraDistanceForFOV(GameCamera.fieldOfView, ScreenSizeInWorldCoordinates.y) * _originalCameraDepthSign);
             }
             else
             {
@@ -637,13 +627,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 CalculateScreenSize();
 
             // Delta time
-            _deltaTime = deltaTime;
-            if (_deltaTime < .0001f)
+            DeltaTime = deltaTime;
+            if (DeltaTime < .0001f)
                 return;
                 
             // Pre-Move update
             if (PreMoveUpdate != null)
-                PreMoveUpdate(_deltaTime);
+                PreMoveUpdate(DeltaTime);
 
             // Cycle through the pre movers
             for (int i = 0; i < _preMovers.Count; i++)
@@ -652,35 +642,35 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             }
 
             // Calculate targets mid point
-            _previousTargetsMidPoint = _targetsMidPoint;
-            _targetsMidPoint = GetTargetsWeightedMidPoint(ref CameraTargets);
-            _cameraTargetPosition = _targetsMidPoint;
+            PreviousTargetsMidPoint = TargetsMidPoint;
+            TargetsMidPoint = GetTargetsWeightedMidPoint(ref CameraTargets);
+            CameraTargetPosition = TargetsMidPoint;
 
             // Calculate influences
             _influencesSum = Utils.GetVectorsSum(_influences);
-            _cameraTargetPosition += _influencesSum;
+            CameraTargetPosition += _influencesSum;
             _influences.Clear();
 
             // Follow only on selected axis
-            var cameraTargetPositionX = FollowHorizontal ? Vector3H(_cameraTargetPosition) : Vector3H(_transform.localPosition);
-            var cameraTargetPositionY = FollowVertical ? Vector3V(_cameraTargetPosition) : Vector3V(_transform.localPosition);
-            _cameraTargetPosition = VectorHV(cameraTargetPositionX - Vector3H(_parentPosition), cameraTargetPositionY - Vector3V(_parentPosition));
+            var cameraTargetPositionX = FollowHorizontal ? Vector3H(CameraTargetPosition) : Vector3H(_transform.localPosition);
+            var cameraTargetPositionY = FollowVertical ? Vector3V(CameraTargetPosition) : Vector3V(_transform.localPosition);
+            CameraTargetPosition = VectorHV(cameraTargetPositionX - Vector3H(ParentPosition), cameraTargetPositionY - Vector3V(ParentPosition));
 
             // Ignore targets and influences if exclusive position is set
             if (ExclusiveTargetPosition.HasValue)
             {
-                _cameraTargetPosition = VectorHV(Vector3H(ExclusiveTargetPosition.Value) - Vector3H(_parentPosition), Vector3V(ExclusiveTargetPosition.Value) - Vector3V(_parentPosition));
+                CameraTargetPosition = VectorHV(Vector3H(ExclusiveTargetPosition.Value) - Vector3H(ParentPosition), Vector3V(ExclusiveTargetPosition.Value) - Vector3V(ParentPosition));
                 ExclusiveTargetPosition = null;
             }
 
             // Add offset
-            _cameraTargetPosition += VectorHV(FollowHorizontal ? GetOffsetX() : 0, FollowVertical ? GetOffsetY() : 0);
+            CameraTargetPosition += VectorHV(FollowHorizontal ? GetOffsetX() : 0, FollowVertical ? GetOffsetY() : 0);
 
             // Tween camera final position
-            _cameraTargetHorizontalPositionSmoothed = Utils.SmoothApproach(_cameraTargetHorizontalPositionSmoothed, _previousCameraTargetHorizontalPositionSmoothed, Vector3H(_cameraTargetPosition), 1f / HorizontalFollowSmoothness, _deltaTime);
+            _cameraTargetHorizontalPositionSmoothed = Utils.SmoothApproach(_cameraTargetHorizontalPositionSmoothed, _previousCameraTargetHorizontalPositionSmoothed, Vector3H(CameraTargetPosition), 1f / HorizontalFollowSmoothness, DeltaTime);
             _previousCameraTargetHorizontalPositionSmoothed = _cameraTargetHorizontalPositionSmoothed;
 
-            _cameraTargetVerticalPositionSmoothed = Utils.SmoothApproach(_cameraTargetVerticalPositionSmoothed, _previousCameraTargetVerticalPositionSmoothed, Vector3V(_cameraTargetPosition), 1f / VerticalFollowSmoothness, _deltaTime);
+            _cameraTargetVerticalPositionSmoothed = Utils.SmoothApproach(_cameraTargetVerticalPositionSmoothed, _previousCameraTargetVerticalPositionSmoothed, Vector3V(CameraTargetPosition), 1f / VerticalFollowSmoothness, DeltaTime);
             _previousCameraTargetVerticalPositionSmoothed = _cameraTargetVerticalPositionSmoothed;
 
             // Movement this step
@@ -700,7 +690,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             }
 
             // Calculate the new size
-            var newSize = _screenSizeInWorldCoordinates.y * .5f + deltaSize;
+            var newSize = ScreenSizeInWorldCoordinates.y * .5f + deltaSize;
 
             // Cycle through the size overriders
             for (int i = 0; i < _sizeOverriders.Count; i++)
@@ -709,7 +699,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             }
 
             // Apply the new size
-            if (newSize != _screenSizeInWorldCoordinates.y * .5f)
+            if (newSize != ScreenSizeInWorldCoordinates.y * .5f)
                 SetScreenSize(newSize);
 
 
@@ -743,7 +733,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             
             // Post-Move update
             if (PostMoveUpdate != null)
-                PostMoveUpdate(_deltaTime);
+                PostMoveUpdate(DeltaTime);
         }
 
         /// <summary>For internal use</summary>
@@ -856,7 +846,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             while (duration > 0)
             {
-                duration -= _deltaTime;
+                duration -= DeltaTime;
 
                 ApplyInfluence(influence);
 
@@ -872,7 +862,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += _deltaTime / duration;
+                t += DeltaTime / duration;
                 cameraTarget.TargetInfluenceH = Utils.EaseFromTo(startInfluenceH, influenceH, t, EaseType.Linear);
                 cameraTarget.TargetInfluenceV = Utils.EaseFromTo(startInfluenceV, influenceV, t, EaseType.Linear);
 
@@ -885,13 +875,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         IEnumerator UpdateScreenSizeRoutine(float finalSize, float duration, EaseType easeType)
         {
-            var startSize = _screenSizeInWorldCoordinates.y * .5f;
+            var startSize = ScreenSizeInWorldCoordinates.y * .5f;
             var newSize = startSize;
 
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += _deltaTime / duration;
+                t += DeltaTime / duration;
                 newSize = Utils.EaseFromTo(startSize, finalSize, t, easeType);
 
                 SetScreenSize(newSize);
@@ -900,6 +890,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             }
 
             _updateScreenSizeCoroutine = null;
+
+            if (OnUpdateScreenSizeFinished != null)
+                OnUpdateScreenSizeFinished(newSize);
         }
 
         IEnumerator DollyZoomRoutine(float finalFOV, float duration, EaseType easeType)
@@ -910,7 +903,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += _deltaTime / duration;
+                t += DeltaTime / duration;
 
                 newFOV = Utils.EaseFromTo(startFOV, finalFOV, t, easeType);
                 GameCamera.fieldOfView = newFOV;
@@ -918,12 +911,18 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 _transform.localPosition = VectorHVD(
                     Vector3H(_transform.localPosition), 
                     Vector3V(_transform.localPosition), 
-                    GetCameraDistanceForFOV(newFOV, _screenSizeInWorldCoordinates.y) * _originalCameraDepthSign);
+                    GetCameraDistanceForFOV(newFOV, ScreenSizeInWorldCoordinates.y) * _originalCameraDepthSign);
 
                 yield return GetYield();
             }
 
             _dollyZoomRoutine = null;
+
+            if (OnDollyZoomFinished != null)
+                OnDollyZoomFinished(newFOV);
+            
+            if (OnUpdateScreenSizeFinished != null)
+                OnUpdateScreenSizeFinished(ScreenSizeInWorldCoordinates.y * .5f);
         }
 
         void SetScreenSize(float newSize)
@@ -955,7 +954,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 }
             }
 
-            _screenSizeInWorldCoordinates = new Vector2(newSize * 2f * GameCamera.aspect, newSize * 2f);
+            ScreenSizeInWorldCoordinates = new Vector2(newSize * 2f * GameCamera.aspect, newSize * 2f);
 
 #if PC2D_TK2D_SUPPORT
             if (Tk2dCam != null)
@@ -976,7 +975,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 #endif
 
             if (OnCameraResize != null)
-                OnCameraResize(_screenSizeInWorldCoordinates);
+                OnCameraResize(ScreenSizeInWorldCoordinates);
         }
 
         float GetCameraDistanceForFOV(float fov, float cameraHeight)
@@ -986,12 +985,12 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         float GetOffsetX()
         {
-            return IsRelativeOffset ? OffsetX * _screenSizeInWorldCoordinates.x * .5f : OffsetX;
+            return IsRelativeOffset ? OffsetX * ScreenSizeInWorldCoordinates.x * .5f : OffsetX;
         }
 
         float GetOffsetY()
         {
-            return IsRelativeOffset ? OffsetY * _screenSizeInWorldCoordinates.y * .5f : OffsetY;
+            return IsRelativeOffset ? OffsetY * ScreenSizeInWorldCoordinates.y * .5f : OffsetY;
         }
 
         #endregion
@@ -1163,7 +1162,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (Application.isPlaying)
             {
                 Gizmos.color = EditorPrefsX.GetColor(PrefsData.CamTargetPositionSmoothedColorKey, PrefsData.CamTargetPositionSmoothedColorValue);
-                var cameraTargetPosSmoothed = VectorHVD(_cameraTargetHorizontalPositionSmoothed + Vector3H(_parentPosition), _cameraTargetVerticalPositionSmoothed + Vector3V(_parentPosition), cameraDepthOffset);
+                var cameraTargetPosSmoothed = VectorHVD(_cameraTargetHorizontalPositionSmoothed + Vector3H(ParentPosition), _cameraTargetVerticalPositionSmoothed + Vector3V(ParentPosition), cameraDepthOffset);
                 Gizmos.DrawWireSphere(cameraTargetPosSmoothed, .02f * cameraDimensions.y);
                 Gizmos.DrawLine(cameraTargetPos, cameraTargetPosSmoothed);
             }

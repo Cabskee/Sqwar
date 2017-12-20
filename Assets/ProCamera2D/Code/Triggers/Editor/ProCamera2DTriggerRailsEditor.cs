@@ -38,7 +38,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // ProCamera2D
             _tooltip = new GUIContent("Pro Camera 2D", "");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);            
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);            
 
             // Update interval
             _tooltip = new GUIContent("Update Interval", "Every X seconds detect collision. Smaller frequencies are more precise but also require more processing.");

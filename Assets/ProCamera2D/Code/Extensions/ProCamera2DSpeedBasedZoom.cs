@@ -3,7 +3,7 @@
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-speed-based-zoom/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-speed-based-zoom/")]
     #endif
     public class ProCamera2DSpeedBasedZoom : BasePC2D, ISizeDeltaChanger
     {
@@ -54,8 +54,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         protected override void OnDestroy()
         {
             base.OnDestroy();
-
-            ProCamera2D.RemoveSizeDeltaChanger(this);
+            
+            if(ProCamera2D)
+                ProCamera2D.RemoveSizeDeltaChanger(this);
         }
 
         #region ISizeDeltaChanger implementation

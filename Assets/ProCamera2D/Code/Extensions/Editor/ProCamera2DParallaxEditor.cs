@@ -130,7 +130,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// ProCamera2D
 			_tooltip = new GUIContent("Pro Camera 2D", "");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
 			if (_proCamera2DParallax.ProCamera2D == null)
 				EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);

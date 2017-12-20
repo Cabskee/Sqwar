@@ -42,27 +42,28 @@ public class PlayerController: NetworkBehaviour {
 	}
 
 	void Start() {
-		if (isLocalPlayer) {
+		if (isLocalPlayer)
 			ProCamera2D.Instance.AddCameraTarget(transform);
-		}
 
 		carriedBlock.SetActive(false);
 
-		// TODO: Use color of this player they set
-		color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-		GetComponent<SpriteRenderer>().color = color;
-		carriedBlock.GetComponent<SpriteRenderer>().color = color;
+		if (isLocalPlayer) { // TODO: Use the player's selected color
+			color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+			CmdRequestToSetPlayerColor(color);
+		}
+		applyPlayerColor();
 	}
 
 	void Update() {
+		if (!isLocalPlayer)
+			return;
+
 		if (charController.isGrounded) {
 			jumpedSinceGrounded = false;
 			clientVelocity.y = 0;
 		}
 
-		if (isClient) {
-			clientInput = Vector2.zero;
-		}
+		clientInput = Vector2.zero;
 
 		if (isLocalPlayer) { // Owner Movement & Actions
 			normalizedHorizontal = Input.GetAxisRaw("Horizontal");
@@ -104,12 +105,6 @@ public class PlayerController: NetworkBehaviour {
 					CmdRequestToFireBlock(facingDirection);
 				}
 			}
-		} else if (isServer) { // Server Movement (Using Input from Client)
-			normalizedHorizontal = clientInput.x;
-			if (clientInput.y == 1f && (charController.isGrounded || !jumpedSinceGrounded)) {
-				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
-				jumpedSinceGrounded = true;
-			}
 		}
 
 		// Apply horizontal speed smoothing
@@ -143,6 +138,17 @@ public class PlayerController: NetworkBehaviour {
 			}
 		};
 		return nearestBlock;
+	}
+
+	[Command]
+	void CmdRequestToSetPlayerColor(Color playerColor) {
+		color = playerColor;
+		applyPlayerColor();
+	}
+
+	void applyPlayerColor() {
+		GetComponent<SpriteRenderer>().color = color;
+		carriedBlock.GetComponent<SpriteRenderer>().color = color;
 	}
 
 	// PICKING UP BLOCK

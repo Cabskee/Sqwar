@@ -3,7 +3,7 @@
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-pixel-perfect/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-pixel-perfect/")]
     #endif
     [ExecuteInEditMode]
     public class ProCamera2DPixelPerfectSprite : BasePC2D, IPostMover
@@ -66,7 +66,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         #if UNITY_EDITOR
         void LateUpdate()
         {
-            if(enabled && !Application.isPlaying && !IsAMovingObject && _pixelPerfectPlugin.enabled)
+            if(enabled && !Application.isPlaying && !IsAMovingObject)
                 SetAsPixelPerfect();
                 
             if(!Application.isPlaying)
@@ -76,7 +76,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         
         void Step()
         {
-            if (!_pixelPerfectPlugin.enabled)
+            if (_pixelPerfectPlugin == null || !_pixelPerfectPlugin.enabled)
                 return;
 
             if (IsAMovingObject)
@@ -88,6 +88,11 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         void GetPixelPerfectPlugin()
         {
             _pixelPerfectPlugin = ProCamera2D.GetComponent<ProCamera2DPixelPerfect>();
+            
+            #if UNITY_EDITOR
+            if(_pixelPerfectPlugin == null)
+                Debug.LogWarning("PixelPerfect extension not present. Please add it to the ProCamera2D core.");
+            #endif
         }
 
         void GetSprite()

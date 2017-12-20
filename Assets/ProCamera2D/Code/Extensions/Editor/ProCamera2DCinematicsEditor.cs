@@ -155,7 +155,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // ProCamera2D
             _tooltip = new GUIContent("Pro Camera 2D", "");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
             // Targets Drop Area
             EditorGUILayout.Space();

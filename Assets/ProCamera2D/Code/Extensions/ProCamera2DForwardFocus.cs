@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-forward-focus/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-forward-focus/")]
     #endif
     public class ProCamera2DForwardFocus : BasePC2D, IPreMover
     {
@@ -53,14 +53,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             StartCoroutine(Enable());
 
-            ProCamera2D.Instance.AddPreMover(this);
+            ProCamera2D.AddPreMover(this);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
 
-            ProCamera2D.RemovePreMover(this);
+            if(ProCamera2D)
+                ProCamera2D.RemovePreMover(this);
         }
 
         #region IPreMover implementation

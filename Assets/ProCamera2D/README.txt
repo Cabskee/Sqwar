@@ -37,6 +37,36 @@ Twitter - http://www.twitter.com/lpfonseca
 
 ## CHANGELOG ##
 
+2.5.3
+- PanAndZoom - Fixed bug that occurred on mobile when activating the extension at a later stage rather than at start
+- PixelPerfectSprite - Fixed errors that could occur if there was no PixelPerfect extension enabled
+- PixelPerfectSprite - Reduced number of warnings in case no ProCamera2D is found on the scene (a few still have to occur)
+- TriggerBoundaries - Fixed disabling NumericBoundaries extension when no value is set
+
+2.5.2
+- Core - Added two new events - "OnUpdateScreenSizeFinished" and "OnDollyZoomFinished"
+- Core - Code cleanup
+- Parallax - Added compatibility with the ContentFitter extension
+- TransitionsFX - Added option to use realtime transitions
+- PanAndZoom - Added option to choose which mouse button to use for panning
+- TriggerBoundaries - Fixed bug when comparing trigger boundaries that use the relative mode
+
+2.5.1
+- ContentFitter - Small tweaks
+
+2.5.0
+- ContentFitter - New extension! Fit anything on screen and easily control how it looks across different screen sizes
+
+2.4.8
+- LimitDistance - Added an option to use the targets position instead of the camera center for calculations
+- LimitDistance - Fixed stutter when the camera target goes beyond the limits
+
+2.4.7
+- Core - Removed calls to static instance for easier support of multiple cameras setups
+- PanAndZoom - Added support for multiple cameras setups
+- PanAndZoom - Added support for multiple fingers panning
+- PixelPerfect - Added a getter for the current viewport scale (can be useful for other components)
+
 2.4.6
 - LimitDistance - Added support for limiting the top, bottom, left and right directions instead of only vertically and horizontally
 - LimitDistance - Fixed incorrect reset of the smoothed camera position which could interfere with other extensions dependent on it

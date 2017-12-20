@@ -36,11 +36,18 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// ProCamera2D
 			_tooltip = new GUIContent("Pro Camera 2D", "");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
 			if (proCamera2DLimitDistance.ProCamera2D == null)
 				EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);
+			
+			// Use Targets Position
+			EditorGUILayout.Space();
+			_tooltip = new GUIContent("Use Targets Position", "If enabled, the extension will use the targets midpoint instead of the camera center for calculations.");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("UseTargetsPosition"), _tooltip);
+			EditorGUILayout.Space();
 
+			// Limits
 			DrawGUI(
 				"Limit Top Distance",
 				"Prevent the camera target from getting out of the screen. Use this if you have a high follow smoothness and your targets are getting out of the screen.",

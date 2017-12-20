@@ -4,11 +4,13 @@ using System.Collections;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
 #if UNITY_5_3_OR_NEWER
-	[HelpURL("http://www.procamera2d.com/user-guide/extension-limit-distance/")]
+	[HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-limit-distance/")]
 #endif
 	public class ProCamera2DLimitDistance : BasePC2D, IPositionDeltaChanger
 	{
 		public static string ExtensionName = "Limit Distance";
+
+		public bool UseTargetsPosition = true;
 
 		public bool LimitTopCameraDistance = true;
 		[Range(.1f, 1f)]
@@ -30,7 +32,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			base.Awake();
 
-			ProCamera2D.Instance.AddPositionDeltaChanger(this);
+			ProCamera2D.AddPositionDeltaChanger(this);
 		}
 
 		protected override void OnDestroy()
@@ -52,13 +54,17 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			var verticalDeltaMovement = Vector3V(originalDelta);
 			var verticalExtra = false;
 
+			var comparisonPosition = UseTargetsPosition
+				? new Vector2(Vector3H(ProCamera2D.TargetsMidPoint), Vector3V(ProCamera2D.TargetsMidPoint))
+				: new Vector2(Vector3H(ProCamera2D.CameraTargetPosition), Vector3V(ProCamera2D.CameraTargetPosition));
+
 			// Top
 			if (LimitTopCameraDistance)
 			{
 				var verticalArea = (ProCamera2D.ScreenSizeInWorldCoordinates.y / 2) * MaxTopTargetDistance;
-				if (ProCamera2D.CameraTargetPosition.y > verticalDeltaMovement + Vector3V(ProCamera2D.LocalPosition) + verticalArea)
+				if (comparisonPosition.y > verticalDeltaMovement + Vector3V(ProCamera2D.LocalPosition) + verticalArea)
 				{
-					verticalDeltaMovement = ProCamera2D.CameraTargetPosition.y - (Vector3V(ProCamera2D.LocalPosition) + verticalArea);
+					verticalDeltaMovement = comparisonPosition.y - (Vector3V(ProCamera2D.LocalPosition) + verticalArea);
 					verticalExtra = true;
 				}
 			}
@@ -67,9 +73,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (LimitBottomCameraDistance)
 			{
 				var verticalArea = (ProCamera2D.ScreenSizeInWorldCoordinates.y / 2) * MaxBottomTargetDistance;
-				if (ProCamera2D.CameraTargetPosition.y < verticalDeltaMovement + Vector3V(ProCamera2D.LocalPosition) - verticalArea)
+				if (comparisonPosition.y < verticalDeltaMovement + Vector3V(ProCamera2D.LocalPosition) - verticalArea)
 				{
-					verticalDeltaMovement = ProCamera2D.CameraTargetPosition.y - (Vector3V(ProCamera2D.LocalPosition) - verticalArea);
+					verticalDeltaMovement = comparisonPosition.y - (Vector3V(ProCamera2D.LocalPosition) - verticalArea);
 					verticalExtra = true;
 				}
 			}
@@ -78,9 +84,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (LimitLeftCameraDistance)
 			{
 				var horizontalArea = (ProCamera2D.ScreenSizeInWorldCoordinates.x / 2) * MaxLeftTargetDistance;
-				if (ProCamera2D.CameraTargetPosition.x < horizontalDeltaMovement + Vector3H(ProCamera2D.LocalPosition) - horizontalArea)
+				if (comparisonPosition.x < horizontalDeltaMovement + Vector3H(ProCamera2D.LocalPosition) - horizontalArea)
 				{
-					horizontalDeltaMovement = ProCamera2D.CameraTargetPosition.x - (Vector3H(ProCamera2D.LocalPosition) - horizontalArea);
+					horizontalDeltaMovement = comparisonPosition.x - (Vector3H(ProCamera2D.LocalPosition) - horizontalArea);
 					horizontalExtra = true;
 				}
 			}
@@ -89,16 +95,16 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (LimitRightCameraDistance)
 			{
 				var horizontalArea = (ProCamera2D.ScreenSizeInWorldCoordinates.x / 2) * MaxRightTargetDistance;
-				if (ProCamera2D.CameraTargetPosition.x > horizontalDeltaMovement + Vector3H(ProCamera2D.LocalPosition) + horizontalArea)
+				if (comparisonPosition.x > horizontalDeltaMovement + Vector3H(ProCamera2D.LocalPosition) + horizontalArea)
 				{
-					horizontalDeltaMovement = ProCamera2D.CameraTargetPosition.x - (Vector3H(ProCamera2D.LocalPosition) + horizontalArea);
+					horizontalDeltaMovement = comparisonPosition.x - (Vector3H(ProCamera2D.LocalPosition) + horizontalArea);
 					horizontalExtra = true;
 				}
 			}
 
 			ProCamera2D.CameraTargetPositionSmoothed = new Vector2(
-				horizontalExtra ? Vector3H(ProCamera2D.CameraTargetPositionSmoothed) + horizontalDeltaMovement : Vector3H(ProCamera2D.CameraTargetPositionSmoothed),
-				verticalExtra ? Vector3V(ProCamera2D.CameraTargetPositionSmoothed) + verticalDeltaMovement : Vector3V(ProCamera2D.CameraTargetPositionSmoothed));
+				horizontalExtra ? Vector3H(ProCamera2D.LocalPosition) + horizontalDeltaMovement : Vector3H(ProCamera2D.CameraTargetPositionSmoothed),
+				verticalExtra ? Vector3V(ProCamera2D.LocalPosition) + verticalDeltaMovement : Vector3V(ProCamera2D.CameraTargetPositionSmoothed));
 
 			return VectorHV(horizontalDeltaMovement, verticalDeltaMovement);
 		}

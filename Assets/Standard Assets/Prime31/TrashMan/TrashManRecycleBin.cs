@@ -182,7 +182,7 @@ public sealed class TrashManRecycleBin
 				{
 					// we add the startLifetime to the system's duration to avoid it getting recycled while emitting.
 					// note that curves can extend the startLifetime so this isn't perfect
-					TrashMan.despawnAfterDelay( go, system.duration + system.startLifetime );
+					TrashMan.despawnAfterDelay( go, system.main.duration + system.main.startLifetime.constant );
 				}
 				else
 				{

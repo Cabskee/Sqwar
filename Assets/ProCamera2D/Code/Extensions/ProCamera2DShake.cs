@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
 #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-shake/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-shake/")]
 #endif
     public class ProCamera2DShake : BasePC2D
     {

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/trigger-zoom/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/trigger-zoom/")]
     #endif
     public class ProCamera2DTriggerZoom : BaseTrigger
     {

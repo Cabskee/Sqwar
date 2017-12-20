@@ -30,7 +30,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     }
 
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-transitions-fx/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-transitions-fx/")]
     #endif
     public class ProCamera2DTransitionsFX : BasePC2D
     {
@@ -96,6 +96,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         public float TextureSmoothingExit = .2f;
 
         public bool StartSceneOnEnterState = true;
+
+        public bool UseRealtime = true;
 
         Coroutine _transitionCoroutine;
         float _step;
@@ -269,12 +271,19 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 OnTransitionStarted();
 
             if (delay > 0)
-                yield return new WaitForSeconds(delay);
+            {
+                #if UNITY_5_4_OR_NEWER
+                if(UseRealtime)
+                    yield return new WaitForSecondsRealtime(delay);
+                else
+                #endif
+                    yield return new WaitForSeconds(delay);
+            }
 
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += ProCamera2D.DeltaTime / duration;
+                t += (UseRealtime ? Time.unscaledDeltaTime : ProCamera2D.DeltaTime) / duration;
 
                 _step = Utils.EaseFromTo(startValue, endValue, t, easeType);
 

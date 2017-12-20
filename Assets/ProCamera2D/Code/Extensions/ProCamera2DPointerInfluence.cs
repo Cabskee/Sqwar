@@ -3,7 +3,7 @@
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-pointer-influence/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-pointer-influence/")]
     #endif
     public class ProCamera2DPointerInfluence : BasePC2D, IPreMover
     {
@@ -21,14 +21,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             base.Awake();
 
-            ProCamera2D.Instance.AddPreMover(this);
+            ProCamera2D.AddPreMover(this);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
 
-            ProCamera2D.RemovePreMover(this);
+            if(ProCamera2D)
+                ProCamera2D.RemovePreMover(this);
         }
 
         override public void OnReset()

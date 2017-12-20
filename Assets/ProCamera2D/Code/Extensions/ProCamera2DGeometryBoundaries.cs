@@ -3,7 +3,7 @@
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/extension-geometry-boundaries/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/extension-geometry-boundaries/")]
     #endif
     public class ProCamera2DGeometryBoundaries : BasePC2D, IPositionDeltaChanger
     {
@@ -29,7 +29,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             base.OnDestroy();
 
-            ProCamera2D.RemovePositionDeltaChanger(this);
+            if(ProCamera2D)
+                ProCamera2D.RemovePositionDeltaChanger(this);
         }
 
         #region IPositionDeltaChanger implementation

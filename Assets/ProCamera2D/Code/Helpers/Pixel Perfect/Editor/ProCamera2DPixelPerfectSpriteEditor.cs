@@ -13,10 +13,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         void OnEnable()
         {
             var proCamera2DPixelPerfectSprite = (ProCamera2DPixelPerfectSprite)target;
-
-            if (proCamera2DPixelPerfectSprite.ProCamera2D == null && Camera.main != null)
-                proCamera2DPixelPerfectSprite.ProCamera2D = Camera.main.GetComponent<ProCamera2D>();
-
+            
             _script = MonoScript.FromMonoBehaviour(proCamera2DPixelPerfectSprite);
         }
 
@@ -68,7 +65,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // ProCamera2D
             _tooltip = new GUIContent("Pro Camera 2D", "");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("ProCamera2D"), _tooltip);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("_pc2D"), _tooltip);
 
             // Moving object
             _tooltip = new GUIContent("Is A Moving Object", "If checked, the object position will be aligned to pixel perfect every frame. To improve performance, enable only if the object (or its parent) move.");

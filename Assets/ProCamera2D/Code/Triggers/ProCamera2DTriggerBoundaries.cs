@@ -4,7 +4,7 @@ using System.Collections;
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
     #if UNITY_5_3_OR_NEWER
-    [HelpURL("http://www.procamera2d.com/user-guide/trigger-boundaries/")]
+    [HelpURLAttribute("http://www.procamera2d.com/user-guide/trigger-boundaries/")]
     #endif
     public class ProCamera2DTriggerBoundaries : BaseTrigger, IPositionOverrider
     {
@@ -73,14 +73,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             base.Awake();
 
-            ProCamera2D.Instance.AddPositionOverrider(this);
+            ProCamera2D.AddPositionOverrider(this);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
 
-            ProCamera2D.RemovePositionOverrider(this);
+            if(ProCamera2D)
+                ProCamera2D.RemovePositionOverrider(this);
         }
 
         void Start()
@@ -181,11 +182,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 NumericBoundaries.UseBottomBoundary = UseBottomBoundary;
                 if (UseBottomBoundary)
                     NumericBoundaries.BottomBoundary = NumericBoundaries.TargetBottomBoundary = _targetBottomBoundary;
-
-                if (!UseTopBoundary && !UseBottomBoundary && !UseLeftBoundary && !UseRightBoundary)
-                    NumericBoundaries.UseNumericBoundaries = false;
-                else
-                    NumericBoundaries.UseNumericBoundaries = true;
             }
         }
 
@@ -211,25 +207,33 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             if (!UseTopBoundary && !UseBottomBoundary && !UseLeftBoundary && !UseRightBoundary)
             {
-                NumericBoundaries.UseNumericBoundaries = false;
+                NumericBoundaries.UseTopBoundary = false;
+                NumericBoundaries.UseBottomBoundary = false;
+                NumericBoundaries.UseLeftBoundary = false;
+                NumericBoundaries.UseRightBoundary = false;
                 yield break;
             }
+            
+            var position = transform.position;
+            var topBoundary = AreBoundariesRelative ? position.y + TopBoundary : TopBoundary;
+            var bottomBoundary = AreBoundariesRelative ? position.y + BottomBoundary : BottomBoundary;
+            var leftBoundary = AreBoundariesRelative ? position.x + LeftBoundary : LeftBoundary;
+            var rightBoundary = AreBoundariesRelative ? position.x + RightBoundary : RightBoundary;
+            const float epsilon = 0.01f;
 
             // Avoid unnecessary transitions
             var skip = true;
-            if (UseTopBoundary && (NumericBoundaries.TopBoundary != TopBoundary || !NumericBoundaries.UseTopBoundary))
+            if (UseTopBoundary && (Mathf.Abs(NumericBoundaries.TopBoundary - topBoundary) > epsilon || !NumericBoundaries.UseTopBoundary))
                 skip = false;
-            if (UseBottomBoundary && (NumericBoundaries.BottomBoundary != BottomBoundary || !NumericBoundaries.UseBottomBoundary))
+            if (skip && UseBottomBoundary && (Mathf.Abs(NumericBoundaries.BottomBoundary - bottomBoundary) > epsilon || !NumericBoundaries.UseBottomBoundary))
                 skip = false;
-            if (UseLeftBoundary && (NumericBoundaries.LeftBoundary != LeftBoundary || !NumericBoundaries.UseLeftBoundary))
+            if (skip && UseLeftBoundary && (Mathf.Abs(NumericBoundaries.LeftBoundary - leftBoundary) > epsilon || !NumericBoundaries.UseLeftBoundary))
                 skip = false;
-            if (UseRightBoundary && (NumericBoundaries.RightBoundary != RightBoundary || !NumericBoundaries.UseRightBoundary))
+            if (skip && UseRightBoundary && (Mathf.Abs(NumericBoundaries.RightBoundary - rightBoundary) > epsilon || !NumericBoundaries.UseRightBoundary))
                 skip = false;
             if (skip)
                 yield break;
 
-            NumericBoundaries.UseNumericBoundaries = true;
-            
             GetTargetBoundaries();
 
             _boundsAnim.UseTopBoundary = UseTopBoundary;
@@ -305,7 +309,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         }
 
         #if UNITY_EDITOR
-        override protected void DrawGizmos()
+        protected override void DrawGizmos()
         {
             base.DrawGizmos();
 

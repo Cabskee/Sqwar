@@ -29,6 +29,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             PrefsData.RailsColorKey,
 
             PrefsData.PanEdgesColorKey,
+	        
+	        PrefsData.FitterFillColorKey,
+	        PrefsData.FitterLineColorKey,
 
             PrefsData.BoundariesTriggerColorKey,
 
@@ -59,6 +62,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             PrefsData.RailsColorValue,
 
             PrefsData.PanEdgesColorValue,
+	        
+	        PrefsData.FitterFillColorValue,
+	        PrefsData.FitterLineColorValue,
 
             PrefsData.BoundariesTriggerColorValue,
 
@@ -100,7 +106,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             		GUILayout.Label("Extensions", EditorStyles.boldLabel);
             	}
 
-                if(i == 14)
+                if(i == 16)
                 {
                     EditorGUILayout.Space();
                     GUILayout.Label("Triggers", EditorStyles.boldLabel);
