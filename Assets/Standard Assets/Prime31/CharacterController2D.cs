@@ -284,8 +284,10 @@ public class CharacterController2D : MonoBehaviour
 		// send off the collision events if we have a listener
 		if( onControllerCollidedEvent != null )
 		{
-			for( var i = 0; i < _raycastHitsThisFrame.Count; i++ )
-				onControllerCollidedEvent( _raycastHitsThisFrame[i] );
+			_raycastHitsThisFrame.ForEach(delegate(RaycastHit2D obj) {
+				if (onControllerCollidedEvent != null)
+					onControllerCollidedEvent(obj);	
+			});
 		}
 
 		ignoreOneWayPlatformsThisFrame = false;

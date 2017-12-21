@@ -72,37 +72,19 @@ public class BlockSpawner: NetworkBehaviour {
 		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
 		blocksSpawned++;
 
-		RpcCreateFallingBlockAtLocation(spawnPos);
-	}
-
-	[ClientRpc]
-	void RpcCreateFallingBlockAtLocation(Vector3 spawnPos) {
-		if (isServer)
-			return;
-
-		GameObject newFallingBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
-		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
+		NetworkServer.Spawn(newFallingBlock);
 	}
 
 	// SHOOTING BLOCKS
 
-	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor) {
+	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, NetworkIdentity ownerIdentity) {
 		if (!isServer)
 			return;
 
 		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
-		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, ownerIdentity.playerControllerId, directionFacing, playerColor);
 		blocksSpawned++;
 
-		RpcCreateShootingBlockAtLocation(spawnPos, directionFacing, playerColor);
-	}
-
-	[ClientRpc]
-	void RpcCreateShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor) {
-		if (isServer)
-			return;
-
-		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
-		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, directionFacing, playerColor);
+		NetworkServer.Spawn(newShootingBlock);
 	}
 }

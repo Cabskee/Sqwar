@@ -9,28 +9,24 @@ using Prime31;
 public class PlayerController: NetworkBehaviour {
 	CharacterController2D charController;
 
-	[SyncVar]
-	public Color color;
-	[SyncVar]
-	public int livesLeft;
-	[SyncVar]
-	public Constant.FacingDirection facingDirection;
+	[SyncVar] public Color color;
+	[SyncVar] public int livesLeft;
+	[SyncVar] public Constant.FacingDirection facingDirection;
 
 	public GameObject carriedBlock;
 
-	// Movement Variables
+	[Header("Movement Properties")]
 	public float gravity;
 	public float speed;
 	public float groundDamping;
 	public float airDamping;
 	public float jumpHeight;
 
+	[SyncVar]
 	bool jumpedSinceGrounded;
-	float normalizedHorizontal;
 
 	public Vector2 pickUpDistance;
 
-	Vector2 clientInput;
 	Vector3 clientVelocity;
 
 	void Awake() {
@@ -55,61 +51,58 @@ public class PlayerController: NetworkBehaviour {
 	}
 
 	void Update() {
-		if (!isLocalPlayer)
+		if (!isLocalPlayer) {
+			if (facingDirection == Constant.FacingDirection.Left) {
+				transform.localScale = new Vector3(-1, 1, 1);
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+			}
 			return;
+		}
 
 		if (charController.isGrounded) {
 			jumpedSinceGrounded = false;
 			clientVelocity.y = 0;
 		}
 
-		clientInput = Vector2.zero;
+		if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
+			clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
+			jumpedSinceGrounded = true;
+		}
 
-		if (isLocalPlayer) { // Owner Movement & Actions
-			normalizedHorizontal = Input.GetAxisRaw("Horizontal");
-			clientInput.x = normalizedHorizontal;
+		if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) {
+			facingDirection = Constant.FacingDirection.Up;
+			transform.localScale = Vector3.one;
+			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 90));
+		}  else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || (facingDirection == Constant.FacingDirection.Down && charController.isGrounded)) {
+			facingDirection = Constant.FacingDirection.Right;
+			transform.localScale = Vector3.one;
+			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+		} else if ((Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && !charController.isGrounded) {
+			facingDirection = Constant.FacingDirection.Down;
+			transform.localScale = Vector3.one;
+			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, -90));
+		} else if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) {
+			facingDirection = Constant.FacingDirection.Left;
+			transform.localScale = new Vector3(-1, 1, 1);
+			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+		}
 
-			if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
-				clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
-				jumpedSinceGrounded = true;
-				clientInput.y = 1f;
-			}
-
-			if (Input.GetKey(KeyCode.W)) {
-				facingDirection = Constant.FacingDirection.Up;
-				transform.localScale = Vector3.one;
-				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 90));
-			} else if (Input.GetKey(KeyCode.A)) {
-				facingDirection = Constant.FacingDirection.Left;
-				transform.localScale = new Vector3(-1, 1, 1);
-				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
-			} else if (Input.GetKey(KeyCode.S)) {
-				facingDirection = Constant.FacingDirection.Down;
-				transform.localScale = Vector3.one;
-				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, -90));
-			} else if (Input.GetKey(KeyCode.D)) {
-				facingDirection = Constant.FacingDirection.Right;
-				transform.localScale = Vector3.one;
-				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
-			}
-
-			// Pickup a nearby block or fire a carried block
-			if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
-				if (!isCarryingBlock()) { // Pick up the closest Block
-					if (findNearestFallenBlock()) {
-						// Tell the server you picked up this block and pick it up clientside
-						CmdRequestToPickupBlock();
-						carriedBlock.SetActive(true);
-					}
-				} else { // Fire a Carried Block
-					CmdRequestToFireBlock(facingDirection);
+		// Pickup a nearby block or fire a carried block
+		if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
+			if (!isCarryingBlock()) { // Pick up the closest Block
+				if (findNearestFallenBlock()) {
+					// Tell the server you picked up this block and pick it up clientside
+					CmdRequestToPickupBlock();
+					carriedBlock.SetActive(true);
 				}
+			} else { // Fire a Carried Block
+				CmdRequestToFireBlock(facingDirection);
 			}
 		}
 
 		// Apply horizontal speed smoothing
 		float smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
-		clientVelocity.x = Mathf.Lerp(clientVelocity.x, normalizedHorizontal * speed, Time.deltaTime*smoothedMovement);
+		clientVelocity.x = Mathf.Lerp(clientVelocity.x, Input.GetAxisRaw("Horizontal") * speed, Time.deltaTime*smoothedMovement);
 
 		// Apply downward gravity
 		clientVelocity.y += -gravity * Time.deltaTime;
@@ -130,7 +123,7 @@ public class PlayerController: NetworkBehaviour {
 	GameObject findNearestFallenBlock() {
 		GameObject nearestBlock = null;
 		Vector2 nearestDistance = Vector2.positiveInfinity;
-		foreach (GameObject block in GameObject.FindGameObjectsWithTag("Falling Block")) {
+		foreach (GameObject block in GameObject.FindGameObjectsWithTag(Constant.TAG_FALLINGBLOCK)) {
 			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
 			if (newDist.x <= pickUpDistance.x && newDist.y <= pickUpDistance.y && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
 				nearestDistance = newDist;
@@ -162,8 +155,10 @@ public class PlayerController: NetworkBehaviour {
 				NetworkServer.Destroy(nearestBlock);
 				carriedBlock.SetActive(true);
 				RpcPickedUpBlock(true);
+				return;
 			}
 		}
+		RpcPickedUpBlock(false);
 	}
 
 	[ClientRpc]
@@ -179,10 +174,12 @@ public class PlayerController: NetworkBehaviour {
 	[Command]
 	void CmdRequestToFireBlock(Constant.FacingDirection facingDirection) {
 		if (isCarryingBlock()) {
-			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color);
+			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, GetComponent<NetworkIdentity>());
 
 			carriedBlock.SetActive(false);
 			RpcFiredBlock();
+		} else {
+			CmdRequestToPickupBlock();
 		}
 	}
 

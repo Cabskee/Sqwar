@@ -1,34 +1,39 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
 
 public class FallingBlock: Block {
-	/*
-	void OnEnable() {
-		blockController.onControllerCollidedEvent += onEnterTrigger;
+	[SyncVar] public bool hasLanded = false;
+
+	readonly string[] collisionLayers = new string[]{
+		Constant.LAYER_PLATFORM,
+		Constant.LAYER_PLACEDBLOCK,
+		Constant.LAYER_PLAYER
+	};
+
+	void Start() {
+		if (isServer)
+			blockController.onControllerCollidedEvent += onFallingBlockCollision;
 	}
 
-	void onEnterTrigger(RaycastHit2D collision) {
-		// If boundary is hit on the Server, destroy this Block
-		// If boundary is hit on the Client, request latest position from Server for this Block
-		if (collision.transform.gameObject.layer == LayerMask.NameToLayer(Constant.LAYER_BOUNDARY)) {
-			if (uLink.Network.isServer) {
-				uLink.Network.Destroy(uLink.NetworkView.Get(this));
-			} else {
-				uLink.NetworkView.Get(this).RPC("requestCurrentPosition", uLink.RPCMode.Server, uLink.Network.player);
+	void onFallingBlockCollision(RaycastHit2D ray) {
+		if (!hasLanded) {
+			boundaryTriggerEvent(ray);
+
+			if (didCollideWithALayer(ray, collisionLayers)) {
+				hasLanded = true;
+				transform.gameObject.layer = LayerMask.NameToLayer(Constant.LAYER_PLACEDBLOCK);
+				blockController.onControllerCollidedEvent -= onFallingBlockCollision;
 			}
 		}
-
-		if (collision.transform.gameObject.layer != LayerMask.NameToLayer(Constant.LAYER_FALLINGBLOCK) && collision.transform.gameObject.layer != LayerMask.NameToLayer(Constant.LAYER_PLATFORM)) {
-			blockController.collisionState.reset();
-		}
-	}*/
+	}
 	
 	void Update () {
-		if (!blockController.isGrounded) {
-			// Always move Falling Block downwards
+		if (!hasLanded && !blockController.isGrounded) {
+			// If the Falling Block has not landed yet, move it downwards
 			blockController.move(new Vector3(0, -1*speed*Time.deltaTime, 0));
 		}
 	}
