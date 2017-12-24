@@ -17,5 +17,8 @@ namespace Constants {
 
 		// Direction for shooting
 		public enum FacingDirection { Left, Right, Up, Down };
+
+		// Player States
+		public enum PlayerState { Alive, Dead, Invulnerable };
 	}
 }

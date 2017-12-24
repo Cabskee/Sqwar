@@ -12,9 +12,11 @@ public class PlayerController: NetworkBehaviour {
 	[SyncVar] public Color color;
 	[SyncVar] public int livesLeft;
 	[SyncVar] public Constant.FacingDirection facingDirection;
+	[SyncVar] public Constant.PlayerState state;
 
 	public GameObject carriedBlock;
 
+	// TODO: Eventually make these readonly
 	[Header("Movement Properties")]
 	public float gravity;
 	public float speed;
@@ -22,8 +24,7 @@ public class PlayerController: NetworkBehaviour {
 	public float airDamping;
 	public float jumpHeight;
 
-	[SyncVar]
-	bool jumpedSinceGrounded;
+	[SyncVar] bool jumpedSinceGrounded;
 
 	public Vector2 pickUpDistance;
 
@@ -35,6 +36,8 @@ public class PlayerController: NetworkBehaviour {
 
 	public override void OnStartServer() {
 		livesLeft = GameHandler.Instance.startingLives;
+
+		setInvulnerable();
 	}
 
 	void Start() {
@@ -66,7 +69,10 @@ public class PlayerController: NetworkBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
 			clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
-			jumpedSinceGrounded = true;
+
+			if (!charController.isGrounded) {
+				jumpedSinceGrounded = true;
+			}
 		}
 
 		if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) {
@@ -112,6 +118,42 @@ public class PlayerController: NetworkBehaviour {
 
 		// Update latest clientVelocity
 		clientVelocity = charController.velocity;
+	}
+
+	// PLAYER STATE FUNCTIONS
+
+	public void killPlayer() {
+		if (!isInvulnerable()) {
+			setPlayerState(Constant.PlayerState.Dead);
+
+			// TODO: Other stuff
+		}
+	}
+
+	void setInvulnerable() {
+		setPlayerState(Constant.PlayerState.Invulnerable);
+
+		Prime31.ZestKit.ActionTask.afterDelay(3f, this, task => {
+			(task.context as PlayerController).setPlayerState(Constant.PlayerState.Alive);
+		});
+	}
+
+	bool isInvulnerable() {
+		return isInState(Constant.PlayerState.Invulnerable);
+	}
+	bool isInStates(Constant.PlayerState[] checkStates) {
+		foreach (Constant.PlayerState state in checkStates) {
+			if (isInState(state))
+				return true;
+		}
+		return false;
+	}
+	bool isInState(Constant.PlayerState checkState) {
+		return state == checkState;
+	}
+
+	void setPlayerState(Constant.PlayerState newState) {
+		state = newState;
 	}
 
 	// HELPER FUNCTIONS

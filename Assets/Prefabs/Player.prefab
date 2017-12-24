@@ -135,6 +135,7 @@ MonoBehaviour:
   color: {r: 1, g: 1, b: 1, a: 1}
   livesLeft: 0
   facingDirection: 0
+  state: 0
   carriedBlock: {fileID: 1976188761909102}
   gravity: 50
   speed: 8
@@ -207,7 +208,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreOneWayPlatformsThisFrame: 0
-  _skinWidth: 0.02
+  _skinWidth: 0.01
   platformMask:
     serializedVersion: 2
     m_Bits: 13824

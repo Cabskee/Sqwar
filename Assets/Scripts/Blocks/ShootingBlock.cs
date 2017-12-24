@@ -20,23 +20,30 @@ public class ShootingBlock: Block {
 	}
 
 	void onShootingBlockCollision(RaycastHit2D ray) {
+		if (!isServer)
+			return;
+
 		boundaryTriggerEvent(ray);
 
-		if (!isBlockDestroying()) {
-			if (didCollideWithALayer(ray, collisionLayers)) {
-				destroyBlock(); // Collided with something noteworthy, destroy self
-
-				if (!didCollideWithLayer(ray, Constant.LAYER_PLATFORM)) {
-					if (didCollideWithLayer(ray, Constant.LAYER_PLAYER)) { // Collided with player
-						if (isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<NetworkIdentity>().playerControllerId)) {
-							Debug.Log("This is your own block!");
+		if (!isBlockDestroying()) { // If block didn't hit boundary
+			if (didCollideWithALayer(ray, collisionLayers)) { // If block hit something noteworth
+				if (!didCollideWithLayer(ray, Constant.LAYER_PLATFORM)) { // If block did NOT hit the platform
+					if (didCollideWithLayer(ray, Constant.LAYER_PLAYER)) { // If the block hit a player
+						if (!isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<NetworkIdentity>().playerControllerId)) {
+							// If block hit another player
+							ray.transform.GetComponent<PlayerController>().killPlayer();
 						} else {
-							Debug.Log("You hit someone else");
+							// If block hit yourself
+							Debug.Log("This is your own block, not sure what to do");
 						}
 					} else {
-						// SEND MESSAGE TO OTHER BLOCK THAT IT SHOULD KILL ITSELF
+						// If block hit another block (Falling or Placed)
+						ray.transform.GetComponent<Block>().collidedWithBlock();
 					}
 				}
+
+				// Block hit something, it should destroy itself
+				destroyBlock();
 			}
 		}
 	}

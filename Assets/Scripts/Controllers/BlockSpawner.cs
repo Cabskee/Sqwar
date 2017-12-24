@@ -43,6 +43,7 @@ public class BlockSpawner: NetworkBehaviour {
 
 	void Start() {
 		currentFallSpeed = baseFallSpeed;
+		currentShootingSpeed = baseShootingSpeed;
 	}
 
 	void Update() {

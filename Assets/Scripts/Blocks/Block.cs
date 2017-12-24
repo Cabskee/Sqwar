@@ -34,11 +34,16 @@ public class Block: NetworkBehaviour {
 			destroyBlock();
 	}
 
+	public void collidedWithBlock() {
+		if (isServer)
+			destroyBlock();
+	}
+
 	protected bool isBlockDestroying() {
 		return isDestroying;
 	}
 	protected void destroyBlock() {
-		if (!isDestroying) {
+		if (isServer && !isDestroying) {
 			isDestroying = true;
 			NetworkServer.Destroy(gameObject);
 		}

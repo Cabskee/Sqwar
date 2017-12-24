@@ -133,8 +133,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 976d36b438f331c4b847b424340c7a19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ignoreOneWayPlatformsThisFrame: 1
-  _skinWidth: 0.02
+  ignoreOneWayPlatformsThisFrame: 0
+  _skinWidth: 0.01
   platformMask:
     serializedVersion: 2
     m_Bits: 13056
@@ -185,7 +185,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shotDirection: 0
   speed: 0
-  color: {r: 0, g: 0, b: 0, a: 0}
+  color: {r: 1, g: 1, b: 1, a: 1}
   hasLanded: 0
 --- !u!212 &212884162991221530
 SpriteRenderer:
