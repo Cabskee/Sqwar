@@ -13,7 +13,7 @@ namespace Constants {
 		public const string LAYER_SHOOTINGBLOCK = "Shooting Block";
 
 		// TAGS
-		public const string TAG_FALLINGBLOCK = "Falling Block";
+		public const string TAG_PICKUPBLOCK = "Pickup Block";
 
 		// Direction for shooting
 		public enum FacingDirection { Left, Right, Up, Down };

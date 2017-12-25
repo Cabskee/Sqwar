@@ -20,9 +20,9 @@ public class Block: NetworkBehaviour {
 		blockController = GetComponent<CharacterController2D>();
 	}
 
+	[ServerCallback]
 	void Start() {
-		if (isServer)
-			blockController.onControllerCollidedEvent += boundaryTriggerEvent;
+		blockController.onControllerCollidedEvent += boundaryTriggerEvent;
 	}
 
 	public override void OnStartClient() {
@@ -34,16 +34,18 @@ public class Block: NetworkBehaviour {
 			destroyBlock();
 	}
 
+	[ServerCallback]
 	public void collidedWithBlock() {
-		if (isServer)
-			destroyBlock();
+		destroyBlock();
 	}
 
 	protected bool isBlockDestroying() {
 		return isDestroying;
 	}
+
+	[ServerCallback]
 	protected void destroyBlock() {
-		if (isServer && !isDestroying) {
+		if (!isDestroying) {
 			isDestroying = true;
 			NetworkServer.Destroy(gameObject);
 		}
@@ -105,9 +107,8 @@ public class Block: NetworkBehaviour {
 
 	protected bool didCollideWithALayer(RaycastHit2D ray, string[] layerNames) {
 		foreach (string layerName in layerNames) {
-			if (didCollideWithLayer(ray, layerName)) {
+			if (didCollideWithLayer(ray, layerName))
 				return true;
-			}
 		}
 		return false;
 	}

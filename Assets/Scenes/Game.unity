@@ -2297,7 +2297,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 882671923}
-  - component: {fileID: 882671926}
+  - component: {fileID: 882671924}
   - component: {fileID: 882671925}
   m_Layer: 0
   m_Name: Network Handler
@@ -2319,7 +2319,7 @@ Transform:
   m_Father: {fileID: 1455818656}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &882671925
+--- !u!114 &882671924
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
@@ -2327,22 +2327,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 882671922}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 227461547, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  manager: {fileID: 0}
-  showGUI: 1
-  offsetX: 0
-  offsetY: 0
---- !u!114 &882671926
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 882671922}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -822479833, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Script: {fileID: 11500000, guid: 64163545182bbd94581a9ab58647e9b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_NetworkPort: 7777
@@ -2357,7 +2342,7 @@ MonoBehaviour:
   m_PlayerPrefab: {fileID: 1227076451764164, guid: d2480447deb4f5a478ca73b1f003cdc5,
     type: 2}
   m_AutoCreatePlayer: 1
-  m_PlayerSpawnMethod: 1
+  m_PlayerSpawnMethod: 0
   m_OfflineScene: Menu
   m_OnlineScene: Game
   m_SpawnPrefabs:
@@ -2418,6 +2403,21 @@ MonoBehaviour:
   matchSize: 4
   isNetworkActive: 0
   matchMaker: {fileID: 0}
+--- !u!114 &882671925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 882671922}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 227461547, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  manager: {fileID: 0}
+  showGUI: 1
+  offsetX: 0
+  offsetY: 0
 --- !u!1 &914573541
 GameObject:
   m_ObjectHideFlags: 0

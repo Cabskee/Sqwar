@@ -41,16 +41,18 @@ public class PlayerController: NetworkBehaviour {
 	}
 
 	void Start() {
-		if (isLocalPlayer)
+		if (isLocalPlayer) {
 			ProCamera2D.Instance.AddCameraTarget(transform);
 
-		carriedBlock.SetActive(false);
-
-		if (isLocalPlayer) { // TODO: Use the player's selected color
 			color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
 			CmdRequestToSetPlayerColor(color);
 		}
+
 		applyPlayerColor();
+
+		carriedBlock.SetActive(false);
+
+		GameHandler.Instance.addPlayer(this);
 	}
 
 	void Update() {
@@ -96,7 +98,7 @@ public class PlayerController: NetworkBehaviour {
 		// Pickup a nearby block or fire a carried block
 		if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
 			if (!isCarryingBlock()) { // Pick up the closest Block
-				if (findNearestFallenBlock()) {
+				if (findNearestBlockToPickup()) {
 					// Tell the server you picked up this block and pick it up clientside
 					CmdRequestToPickupBlock();
 					carriedBlock.SetActive(true);
@@ -122,6 +124,7 @@ public class PlayerController: NetworkBehaviour {
 
 	// PLAYER STATE FUNCTIONS
 
+	[Server]
 	public void killPlayer() {
 		if (!isInvulnerable()) {
 			setPlayerState(Constant.PlayerState.Dead);
@@ -130,6 +133,7 @@ public class PlayerController: NetworkBehaviour {
 		}
 	}
 
+	[Server]
 	void setInvulnerable() {
 		setPlayerState(Constant.PlayerState.Invulnerable);
 
@@ -152,6 +156,7 @@ public class PlayerController: NetworkBehaviour {
 		return state == checkState;
 	}
 
+	[Server]
 	void setPlayerState(Constant.PlayerState newState) {
 		state = newState;
 	}
@@ -162,10 +167,10 @@ public class PlayerController: NetworkBehaviour {
 		return carriedBlock.activeSelf;
 	}
 
-	GameObject findNearestFallenBlock() {
+	GameObject findNearestBlockToPickup() {
 		GameObject nearestBlock = null;
 		Vector2 nearestDistance = Vector2.positiveInfinity;
-		foreach (GameObject block in GameObject.FindGameObjectsWithTag(Constant.TAG_FALLINGBLOCK)) {
+		foreach (GameObject block in GameObject.FindGameObjectsWithTag(Constant.TAG_PICKUPBLOCK)) {
 			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
 			if (newDist.x <= pickUpDistance.x && newDist.y <= pickUpDistance.y && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
 				nearestDistance = newDist;
@@ -192,44 +197,35 @@ public class PlayerController: NetworkBehaviour {
 	void CmdRequestToPickupBlock() {
 		GameObject nearestBlock = null;
 		if (!isCarryingBlock()) {
-			nearestBlock = findNearestFallenBlock();
+			nearestBlock = findNearestBlockToPickup();
 			if (nearestBlock) {
 				NetworkServer.Destroy(nearestBlock);
 				carriedBlock.SetActive(true);
-				RpcPickedUpBlock(true);
+				RpcToggleCarriedBlock(true);
 				return;
 			}
 		}
-		RpcPickedUpBlock(false);
-	}
-
-	[ClientRpc]
-	void RpcPickedUpBlock(bool pickedUp) {
-		if (isServer)
-			return;
-
-		carriedBlock.SetActive(pickedUp);
+		RpcToggleCarriedBlock(false);
 	}
 
 	// THROWING BLOCK
 
 	[Command]
+	[ServerCallback]
 	void CmdRequestToFireBlock(Constant.FacingDirection facingDirection) {
 		if (isCarryingBlock()) {
 			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, GetComponent<NetworkIdentity>());
 
 			carriedBlock.SetActive(false);
-			RpcFiredBlock();
+			RpcToggleCarriedBlock(false);
 		} else {
 			CmdRequestToPickupBlock();
 		}
 	}
 
 	[ClientRpc]
-	void RpcFiredBlock() {
-		if (isServer)
-			return;
-
-		carriedBlock.SetActive(false);
+	[ClientCallback]
+	void RpcToggleCarriedBlock(bool toggle) {
+		carriedBlock.SetActive(toggle);
 	}
 }

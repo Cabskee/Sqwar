@@ -14,11 +14,12 @@ public class FallingBlock: Block {
 		Constant.LAYER_PLAYER
 	};
 
+	[ServerCallback]
 	void Start() {
-		if (isServer)
-			blockController.onControllerCollidedEvent += onFallingBlockCollision;
+		blockController.onControllerCollidedEvent += onFallingBlockCollision;
 	}
 
+	[ServerCallback]
 	void onFallingBlockCollision(RaycastHit2D ray) {
 		if (!hasLanded) {
 			boundaryTriggerEvent(ray);

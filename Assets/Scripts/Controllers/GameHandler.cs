@@ -9,7 +9,7 @@ public class GameHandler: MonoBehaviour {
 	public GameObject playerObject;
 	public int startingLives;
 
-	public List<GameObject> players = new List<GameObject>();
+	public List<PlayerController> players = new List<PlayerController>();
 
 	void Awake() {
 		if (Instance == null) {
@@ -17,5 +17,11 @@ public class GameHandler: MonoBehaviour {
 		} else if (Instance != null) {
 			Destroy(this);
 		}
+	}
+
+	public void addPlayer(PlayerController controller) {
+		players.Add(controller);
+
+		ScoreHandler.Instance.updatePlayerInfo(players);
 	}
 }

@@ -27,7 +27,7 @@ GameObject:
   - component: {fileID: 114032429418936032}
   m_Layer: 10
   m_Name: Falling Block
-  m_TagString: Falling Block
+  m_TagString: Pickup Block
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

@@ -14,15 +14,13 @@ public class ShootingBlock: Block {
 		Constant.LAYER_PLAYER
 	};
 
+	[ServerCallback]
 	void Start() {
-		if (isServer)
-			blockController.onControllerCollidedEvent += onShootingBlockCollision;
+		blockController.onControllerCollidedEvent += onShootingBlockCollision;
 	}
 
+	[Server]
 	void onShootingBlockCollision(RaycastHit2D ray) {
-		if (!isServer)
-			return;
-
 		boundaryTriggerEvent(ray);
 
 		if (!isBlockDestroying()) { // If block didn't hit boundary

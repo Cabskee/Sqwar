@@ -9,8 +9,6 @@ public class PlayerScore: NetworkBehaviour {
 	[SyncVar] public string playerName;
 	[SyncVar] public int lives;
 
-	// TODO: Make this better...
-
 	Text playerNameText;
 	public List<GameObject> liveObjects = new List<GameObject>();
 
