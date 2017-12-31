@@ -28,6 +28,11 @@ public class FallingBlock: Block {
 				hasLanded = true;
 				transform.gameObject.layer = LayerMask.NameToLayer(Constant.LAYER_PLACEDBLOCK);
 				blockController.onControllerCollidedEvent -= onFallingBlockCollision;
+
+				Destroy(blockController.GetComponent<CharacterController2D>());
+
+				// Send the final position to all clients
+				sendPosition();
 			}
 		}
 	}

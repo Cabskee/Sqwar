@@ -51,6 +51,17 @@ public class Block: NetworkBehaviour {
 		}
 	}
 
+	[ServerCallback]
+	protected void sendPosition() {
+		RpcRecievePosition(transform.position);
+	}
+
+	[ClientRpc]
+	[ClientCallback]
+	void RpcRecievePosition(Vector3 position) {
+		transform.position = position;
+	}
+
 	/// <summary>
 	/// Initializes a white block server-wide that falls downwards.
 	/// </summary>

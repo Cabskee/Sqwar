@@ -65,10 +65,8 @@ public class BlockSpawner: NetworkBehaviour {
 
 	// FALLING BLOCKS
 
+	[ServerCallback]
 	void createFallingBlockAtLocation(Vector3 spawnPos) {
-		if (!isServer)
-			return;
-
 		GameObject newFallingBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
 		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
 		blocksSpawned++;
@@ -78,10 +76,8 @@ public class BlockSpawner: NetworkBehaviour {
 
 	// SHOOTING BLOCKS
 
+	[ServerCallback]
 	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, NetworkIdentity ownerIdentity) {
-		if (!isServer)
-			return;
-
 		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
 		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, ownerIdentity.playerControllerId, directionFacing, playerColor);
 		blocksSpawned++;

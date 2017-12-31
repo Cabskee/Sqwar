@@ -56,7 +56,7 @@ GameObject:
   - component: {fileID: 114010106980834608}
   - component: {fileID: 114229520196064506}
   m_Layer: 5
-  m_Name: Scoreboard Player
+  m_Name: Scoreboard Object
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -175,15 +175,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   color: {r: 0, g: 0, b: 0, a: 0}
-  playerName: {fileID: 114555679550712872}
+  playerName: 
   lives: 0
   liveObjects:
-  - {fileID: 1942578885212776}
-  - {fileID: 1590708150883578}
-  - {fileID: 1088601114203562}
-  - {fileID: 1871468506305798}
-  - {fileID: 1253895857899908}
-  - {fileID: 1413071641148220}
+  - {fileID: 114839846652119436}
+  - {fileID: 114350582763019880}
+  - {fileID: 114600874533264354}
+  - {fileID: 114820486505074286}
+  - {fileID: 114366675690547038}
+  - {fileID: 114884779651930094}
 --- !u!114 &114229520196064506
 MonoBehaviour:
   m_ObjectHideFlags: 1

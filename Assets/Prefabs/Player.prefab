@@ -25,7 +25,6 @@ GameObject:
   - component: {fileID: 61150614946866882}
   - component: {fileID: 50799766145336754}
   - component: {fileID: 114647091136260998}
-  - component: {fileID: 114539623170332358}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -132,6 +131,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29a5c0c69e70bae41999380ffa34c766, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerName: 
   color: {r: 1, g: 1, b: 1, a: 1}
   livesLeft: 0
   facingDirection: 0
@@ -143,27 +143,6 @@ MonoBehaviour:
   airDamping: 50
   jumpHeight: 4.5
   pickUpDistance: {x: 1.3, y: 1.3}
---- !u!114 &114539623170332358
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1227076451764164}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1768714887, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_TransformSyncMode: 1
-  m_SendInterval: 0.033333335
-  m_SyncRotationAxis: 3
-  m_RotationSyncCompression: 0
-  m_SyncSpin: 0
-  m_MovementTheshold: 0
-  m_VelocityThreshold: 0.0001
-  m_SnapThreshold: 0
-  m_InterpolateRotation: 0
-  m_InterpolateMovement: 5
 --- !u!114 &114647091136260998
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -7,40 +7,31 @@ using UnityEngine;
 public class PlayerScore: NetworkBehaviour {
 	[SyncVar] public Color color;
 	[SyncVar] public string playerName;
-	[SyncVar] public int lives;
+	public int lives;
 
 	Text playerNameText;
-	public List<GameObject> liveObjects = new List<GameObject>();
+	public List<Image> liveObjects = new List<Image>();
 
 	void Awake() {
 		playerNameText = GetComponentInChildren<Text>();
 	}
 
-	void Update() {
-		if (!gameObject.activeSelf)
-			return;
+	void Start() {
+		if (!isServer)
+			transform.SetParent(ScoreHandler.Instance.scoreboard.transform, false);
+	}
 
+	void Update() {
 		playerNameText.text = playerName;
 		playerNameText.color = color;
-		liveObjects.ForEach(delegate(GameObject life) {
-			life.GetComponent<Image>().color = color;
-			life.SetActive(false);
-		});
-		liveObjects.GetRange(0, lives).ForEach(delegate(GameObject life) {
-			life.SetActive(true);
+		liveObjects.ForEach(delegate(Image life) {
+			life.color = color;
 		});
 	}
 
-	public void updatePlayerInfo(string name, int currentLives, Color newColor) {
-		if (!gameObject.activeSelf)
-			gameObject.SetActive(true);
-
-		playerName = name;
-		lives = currentLives;
-		color = newColor;
-	}
-
-	public void hide() {
-		gameObject.SetActive(false);
+	public void updatePlayerInfo(Player playerObj) {
+		playerName = playerObj.controller.name;
+		lives = playerObj.controller.livesLeft;
+		color = playerObj.controller.color;
 	}
 }

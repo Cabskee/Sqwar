@@ -6,7 +6,9 @@ using UnityEngine;
 public class ScoreHandler: NetworkBehaviour {
 	public static ScoreHandler Instance = null;
 
-	public List<PlayerScore> scoreObjects = new List<PlayerScore>();
+	public GameObject scoreboard;
+	public GameObject scoreboardObject;
+	public List<ScoreboardObject> scoreboardObjects = new List<ScoreboardObject>();
 
 	void Awake() {
 		if (Instance == null) {
@@ -14,27 +16,64 @@ public class ScoreHandler: NetworkBehaviour {
 		} else if (Instance != null) {
 			Destroy(this);
 		}
-
-		hideScoreboard();
 	}
 
-	void Start() {
-		scoreObjects.ForEach(delegate(PlayerScore obj) {
-			//obj.updatePlayerInfo("Player "+Random.Range(0,scoreObjects.Count), Random.Range(0, 7), new Color(Random.Range(0f,1f), Random.Range(0f,1f), Random.Range(0f,1f)));
+	[ServerCallback]
+	public void updatePlayerInfo(List<Player> players) {
+		players.ForEach(delegate(Player player) {
+			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(player.controllerId);
+			if (playerScoreboardObject == null) {
+				GameObject newScoreboardObjectObj = Instantiate(scoreboardObject, Vector3.zero, Quaternion.identity, scoreboard.transform);
+				ScoreboardObject newScoreboardObject = new ScoreboardObject(newScoreboardObjectObj, player.controllerId);
+				newScoreboardObject.score.updatePlayerInfo(player);
+
+				scoreboardObjects.Add(newScoreboardObject);
+
+				NetworkServer.Spawn(newScoreboardObjectObj);
+			} else {
+				playerScoreboardObject.score.updatePlayerInfo(player);
+			}
 		});
 	}
 
-	public void updatePlayerInfo(List<PlayerController> players) {
-		hideScoreboard();
-
-		for (int i=0;i<players.Count;i++) {
-			scoreObjects[i].updatePlayerInfo(players[i].name, players[i].livesLeft, players[i].color);
-		};
+	[ServerCallback]
+	public void removePlayerFromScoreboard(short playerControllerId) {
+		// TODO: Hide scoreboard object for this player
+		if (doesScoreboardExistForPlayer(playerControllerId)) {
+			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(playerControllerId);
+			Destroy(playerScoreboardObject.obj);
+			scoreboardObjects.Remove(playerScoreboardObject);
+		}
 	}
 
-	void hideScoreboard() {
-		scoreObjects.ForEach(delegate(PlayerScore playerScore) {
-			playerScore.hide();
+	[ServerCallback]
+	ScoreboardObject findScoreboardByPlayer(short playerControllerId) {
+		if (doesScoreboardExistForPlayer(playerControllerId)) {
+			return scoreboardObjects.Find(delegate(ScoreboardObject obj) {
+				return obj.playerNetworkId == playerControllerId;
+			});
+		}
+		return null;
+	}
+
+	[ServerCallback]
+	bool doesScoreboardExistForPlayer(short playerControllerId) {
+		return scoreboardObjects.Exists(delegate(ScoreboardObject obj) {
+			return obj.playerNetworkId == playerControllerId;
 		});
+	}
+}
+
+[System.Serializable]
+public class ScoreboardObject {
+	public GameObject obj; //readonly
+	public PlayerScore score; //readonly
+	public short playerNetworkId; //readonly
+
+	public ScoreboardObject(GameObject newObj, short networkId) {
+		obj = newObj;
+		score = newObj.GetComponent<PlayerScore>();
+
+		playerNetworkId = networkId;
 	}
 }

@@ -9,6 +9,7 @@ using Prime31;
 public class PlayerController: NetworkBehaviour {
 	CharacterController2D charController;
 
+	[SyncVar] public string playerName;
 	[SyncVar] public Color color;
 	[SyncVar] public int livesLeft;
 	[SyncVar] public Constant.FacingDirection facingDirection;
@@ -16,7 +17,7 @@ public class PlayerController: NetworkBehaviour {
 
 	public GameObject carriedBlock;
 
-	// TODO: Eventually make these readonly
+	// TODO: Make these readonly
 	[Header("Movement Properties")]
 	public float gravity;
 	public float speed;
@@ -29,6 +30,9 @@ public class PlayerController: NetworkBehaviour {
 	public Vector2 pickUpDistance;
 
 	Vector3 clientVelocity;
+
+	float lastPositionUpdate = 0f;
+	readonly float positionUpdateDelay = 0.05f;
 
 	void Awake() {
 		charController = GetComponent<CharacterController2D>();
@@ -52,7 +56,22 @@ public class PlayerController: NetworkBehaviour {
 
 		carriedBlock.SetActive(false);
 
-		GameHandler.Instance.addPlayer(this);
+		if (isServer) {
+			playerName = "Player "+Random.Range(0, 250);
+			GameHandler.Instance.addPlayer(this);
+
+			charController.onControllerCollidedEvent += boundaryTriggerEvent;
+		}
+	}
+
+	void boundaryTriggerEvent(RaycastHit2D ray) {
+		if (didCollideWithLayer(ray, Constant.LAYER_BOUNDARY)) {
+			killPlayer();
+		}
+	}
+
+	bool didCollideWithLayer(RaycastHit2D ray, string layerName) {
+		return ray.transform.gameObject.layer == LayerMask.NameToLayer(layerName);
 	}
 
 	void Update() {
@@ -71,10 +90,7 @@ public class PlayerController: NetworkBehaviour {
 
 		if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
 			clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
-
-			if (!charController.isGrounded) {
-				jumpedSinceGrounded = true;
-			}
+			jumpedSinceGrounded = true;
 		}
 
 		if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) {
@@ -122,18 +138,60 @@ public class PlayerController: NetworkBehaviour {
 		clientVelocity = charController.velocity;
 	}
 
-	// PLAYER STATE FUNCTIONS
-
-	[Server]
-	public void killPlayer() {
-		if (!isInvulnerable()) {
-			setPlayerState(Constant.PlayerState.Dead);
-
-			// TODO: Other stuff
+	void FixedUpdate() {
+		if (Time.time >= lastPositionUpdate + positionUpdateDelay) {
+			CmdSendPositionToServer(transform.position, transform.localScale, transform.localRotation);
+			lastPositionUpdate = Time.time;
 		}
 	}
 
-	[Server]
+	[Command]
+	void CmdSendPositionToServer(Vector3 newPosition, Vector3 newScale, Quaternion newRotation) {
+		transform.position = newPosition;
+		transform.localScale = newScale;
+		transform.localRotation = newRotation;
+
+		RpcSendPositionToClient(newPosition, newScale, newRotation);
+	}
+
+	[ClientRpc]
+	void RpcSendPositionToClient(Vector3 newPosition, Vector3 newScale, Quaternion newRotation) {
+		if (isLocalPlayer) {
+			if (Mathf.Abs(transform.position.x - newPosition.x) >= 2f || Mathf.Abs(transform.position.y - newPosition.y) >= 4f) {
+				transform.position = newPosition;
+			}
+		} else {
+			transform.position = Vector3.SmoothDamp(transform.position, newPosition, ref clientVelocity, Time.deltaTime*1f);
+			transform.localScale = newScale;
+			transform.localRotation = newRotation;
+		}
+	}
+
+	// PLAYER STATE FUNCTIONS
+
+	[ServerCallback]
+	public void killPlayer() {
+		if (isInState(Constant.PlayerState.Alive)) {
+			setPlayerState(Constant.PlayerState.Dead);
+
+			livesLeft -= 1;
+
+			Prime31.ZestKit.ActionTask.afterDelay(5f, this, task => {
+				(task.context as PlayerController).respawnPlayer();
+			});
+
+			// TODO: Update scoreboard
+		}
+	}
+
+	[ServerCallback]
+	public void respawnPlayer() {
+		// TODO: Move this player to a respawn point
+
+		setInvulnerable();
+	}
+
+	[ServerCallback]
 	void setInvulnerable() {
 		setPlayerState(Constant.PlayerState.Invulnerable);
 
@@ -156,7 +214,7 @@ public class PlayerController: NetworkBehaviour {
 		return state == checkState;
 	}
 
-	[Server]
+	[ServerCallback]
 	void setPlayerState(Constant.PlayerState newState) {
 		state = newState;
 	}
