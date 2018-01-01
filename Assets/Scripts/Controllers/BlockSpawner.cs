@@ -79,7 +79,7 @@ public class BlockSpawner: NetworkBehaviour {
 	[ServerCallback]
 	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, NetworkIdentity ownerIdentity) {
 		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
-		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, ownerIdentity.playerControllerId, directionFacing, playerColor);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, ownerIdentity.netId.Value, directionFacing, playerColor);
 		blocksSpawned++;
 
 		NetworkServer.Spawn(newShootingBlock);

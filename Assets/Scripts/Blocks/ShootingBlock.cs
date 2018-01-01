@@ -27,7 +27,7 @@ public class ShootingBlock: Block {
 			if (didCollideWithALayer(ray, collisionLayers)) { // If block hit something noteworth
 				if (!didCollideWithLayer(ray, Constant.LAYER_PLATFORM)) { // If block did NOT hit the platform
 					if (didCollideWithLayer(ray, Constant.LAYER_PLAYER)) { // If the block hit a player
-						if (!isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<NetworkIdentity>().playerControllerId)) {
+						if (!isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<NetworkIdentity>().netId.Value)) {
 							// If block hit another player
 							ray.transform.GetComponent<PlayerController>().killPlayer();
 						} else {

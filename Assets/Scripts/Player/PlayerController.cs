@@ -24,15 +24,11 @@ public class PlayerController: NetworkBehaviour {
 	public float groundDamping;
 	public float airDamping;
 	public float jumpHeight;
+	Vector3 playerVelocity;
 
 	[SyncVar] bool jumpedSinceGrounded;
 
 	public Vector2 pickUpDistance;
-
-	Vector3 clientVelocity;
-
-	float lastPositionUpdate = 0f;
-	readonly float positionUpdateDelay = 0.05f;
 
 	void Awake() {
 		charController = GetComponent<CharacterController2D>();
@@ -44,24 +40,33 @@ public class PlayerController: NetworkBehaviour {
 		setInvulnerable();
 	}
 
+	public override void OnStartLocalPlayer() {
+		color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+		playerName = "Player "+Random.Range(0, 250);
+		// TODO:
+		// Eventually send CmdRequestToSetPlayerColor() with the player's selected color and move all this server
+		// initialization stuff into its own callback that waits for all this shit or something like that
+
+		// Send this player's initializations
+		CmdSendLocalPlayerInitializations(playerName, color);
+
+		// Set camera follow
+		ProCamera2D.Instance.AddCameraTarget(transform);
+	}
+
 	void Start() {
 		if (isLocalPlayer) {
-			ProCamera2D.Instance.AddCameraTarget(transform);
-
-			color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-			CmdRequestToSetPlayerColor(color);
+			Prime31.ZestKit.ActionTask.every(0.033f, this, task => {
+				(task.context as PlayerController).CmdSendPositionToServer(transform.position);
+			});
 		}
-
-		applyPlayerColor();
 
 		carriedBlock.SetActive(false);
 
-		if (isServer) {
-			playerName = "Player "+Random.Range(0, 250);
-			GameHandler.Instance.addPlayer(this);
+		applyPlayerColor();
 
+		if (isServer)
 			charController.onControllerCollidedEvent += boundaryTriggerEvent;
-		}
 	}
 
 	void boundaryTriggerEvent(RaycastHit2D ray) {
@@ -70,46 +75,68 @@ public class PlayerController: NetworkBehaviour {
 		}
 	}
 
-	bool didCollideWithLayer(RaycastHit2D ray, string layerName) {
+	public bool didCollideWithLayer(RaycastHit2D ray, string layerName) {
 		return ray.transform.gameObject.layer == LayerMask.NameToLayer(layerName);
+	}
+
+	void applyRotation() {
+		switch(facingDirection) {
+			case Constant.FacingDirection.Up:
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 90));
+				break;
+			case Constant.FacingDirection.Right:
+			default:
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+				break;
+			case Constant.FacingDirection.Down:
+				transform.localScale = Vector3.one;
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, -90));
+				break;
+			case Constant.FacingDirection.Left:
+				transform.localScale = new Vector3(-1, 1, 1);
+				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
+				break;
+		}
 	}
 
 	void Update() {
 		if (!isLocalPlayer) {
-			if (facingDirection == Constant.FacingDirection.Left) {
-				transform.localScale = new Vector3(-1, 1, 1);
-				transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
-			}
+			applyRotation();
+
 			return;
 		}
 
+		if (isInState(Constant.PlayerState.Dead))
+			return;
+
 		if (charController.isGrounded) {
 			jumpedSinceGrounded = false;
-			clientVelocity.y = 0;
+			playerVelocity.y = 0;
 		}
 
 		if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
-			clientVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
+			playerVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
 			jumpedSinceGrounded = true;
 		}
 
+		Constant.FacingDirection oldDirection = facingDirection;
 		if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) {
 			facingDirection = Constant.FacingDirection.Up;
-			transform.localScale = Vector3.one;
-			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 90));
-		}  else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || (facingDirection == Constant.FacingDirection.Down && charController.isGrounded)) {
+		}  else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || (isCarryingBlock() && facingDirection == Constant.FacingDirection.Down && charController.isGrounded)) {
 			facingDirection = Constant.FacingDirection.Right;
-			transform.localScale = Vector3.one;
-			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
-		} else if ((Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && !charController.isGrounded) {
+		} else if ((Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && (!isCarryingBlock() || !charController.isGrounded)) {
 			facingDirection = Constant.FacingDirection.Down;
-			transform.localScale = Vector3.one;
-			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, -90));
 		} else if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) {
 			facingDirection = Constant.FacingDirection.Left;
-			transform.localScale = new Vector3(-1, 1, 1);
-			transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
 		}
+
+		applyRotation();
+
+		// Only send new direction if it has changed
+		if (facingDirection != oldDirection)
+			CmdSendRotationToServer(facingDirection);
 
 		// Pickup a nearby block or fire a carried block
 		if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
@@ -126,44 +153,38 @@ public class PlayerController: NetworkBehaviour {
 
 		// Apply horizontal speed smoothing
 		float smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
-		clientVelocity.x = Mathf.Lerp(clientVelocity.x, Input.GetAxisRaw("Horizontal") * speed, Time.deltaTime*smoothedMovement);
+		playerVelocity.x = Mathf.Lerp(playerVelocity.x, Input.GetAxisRaw("Horizontal") * speed, Time.deltaTime*smoothedMovement);
 
 		// Apply downward gravity
-		clientVelocity.y += -gravity * Time.deltaTime;
+		playerVelocity.y += -gravity * Time.deltaTime;
 
 		// Update movement
-		charController.move(clientVelocity * Time.deltaTime);
+		charController.move(playerVelocity * Time.deltaTime);
 
 		// Update latest clientVelocity
-		clientVelocity = charController.velocity;
-	}
-
-	void FixedUpdate() {
-		if (Time.time >= lastPositionUpdate + positionUpdateDelay) {
-			CmdSendPositionToServer(transform.position, transform.localScale, transform.localRotation);
-			lastPositionUpdate = Time.time;
-		}
+		playerVelocity = charController.velocity;
 	}
 
 	[Command]
-	void CmdSendPositionToServer(Vector3 newPosition, Vector3 newScale, Quaternion newRotation) {
-		transform.position = newPosition;
-		transform.localScale = newScale;
-		transform.localRotation = newRotation;
+	void CmdSendRotationToServer(Constant.FacingDirection newDirection) {
+		facingDirection = newDirection;
+	}
 
-		RpcSendPositionToClient(newPosition, newScale, newRotation);
+	[Command]
+	void CmdSendPositionToServer(Vector3 newPosition) {
+		transform.position = newPosition;
+
+		RpcSendPositionToClient(newPosition);
 	}
 
 	[ClientRpc]
-	void RpcSendPositionToClient(Vector3 newPosition, Vector3 newScale, Quaternion newRotation) {
+	void RpcSendPositionToClient(Vector3 newPosition) {
 		if (isLocalPlayer) {
 			if (Mathf.Abs(transform.position.x - newPosition.x) >= 2f || Mathf.Abs(transform.position.y - newPosition.y) >= 4f) {
-				transform.position = newPosition;
+				transform.position = newPosition; // Rubberband
 			}
 		} else {
-			transform.position = Vector3.SmoothDamp(transform.position, newPosition, ref clientVelocity, Time.deltaTime*1f);
-			transform.localScale = newScale;
-			transform.localRotation = newRotation;
+			transform.position = Vector3.SmoothDamp(transform.position, newPosition, ref playerVelocity, Time.deltaTime*1f);
 		}
 	}
 
@@ -239,9 +260,13 @@ public class PlayerController: NetworkBehaviour {
 	}
 
 	[Command]
-	void CmdRequestToSetPlayerColor(Color playerColor) {
-		color = playerColor;
+	void CmdSendLocalPlayerInitializations(string newName, Color newColor) {
+		playerName = newName;
+		color = newColor;
+
 		applyPlayerColor();
+
+		GameHandler.Instance.addPlayer(this);
 	}
 
 	void applyPlayerColor() {

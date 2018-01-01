@@ -25,7 +25,6 @@ public class GameHandler: NetworkBehaviour {
 		newPlayer.name = controller.playerName;
 		players.Add(newPlayer);
 
-		Debug.Log("addPlayer called");
 		ScoreHandler.Instance.updatePlayerInfo(players);
 	}
 }
@@ -33,7 +32,7 @@ public class GameHandler: NetworkBehaviour {
 [System.Serializable]
 public class Player {
 	public string name; //readonly
-	public short controllerId; //readonly
+	public uint networkId; //readonly
 	public PlayerController controller; //readonly
 	public GameObject obj; //readonly
 
@@ -41,6 +40,6 @@ public class Player {
 		controller = newController;
 		obj = newController.gameObject;
 
-		controllerId = obj.GetComponent<NetworkIdentity>().playerControllerId;
+		networkId = obj.GetComponent<NetworkIdentity>().netId.Value;
 	}
 }

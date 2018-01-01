@@ -21,10 +21,10 @@ public class ScoreHandler: NetworkBehaviour {
 	[ServerCallback]
 	public void updatePlayerInfo(List<Player> players) {
 		players.ForEach(delegate(Player player) {
-			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(player.controllerId);
+			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(player.networkId);
 			if (playerScoreboardObject == null) {
 				GameObject newScoreboardObjectObj = Instantiate(scoreboardObject, Vector3.zero, Quaternion.identity, scoreboard.transform);
-				ScoreboardObject newScoreboardObject = new ScoreboardObject(newScoreboardObjectObj, player.controllerId);
+				ScoreboardObject newScoreboardObject = new ScoreboardObject(newScoreboardObjectObj, player.networkId);
 				newScoreboardObject.score.updatePlayerInfo(player);
 
 				scoreboardObjects.Add(newScoreboardObject);
@@ -37,29 +37,29 @@ public class ScoreHandler: NetworkBehaviour {
 	}
 
 	[ServerCallback]
-	public void removePlayerFromScoreboard(short playerControllerId) {
+	public void removePlayerFromScoreboard(uint playerNetworkId) {
 		// TODO: Hide scoreboard object for this player
-		if (doesScoreboardExistForPlayer(playerControllerId)) {
-			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(playerControllerId);
+		if (doesScoreboardExistForPlayer(playerNetworkId)) {
+			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(playerNetworkId);
 			Destroy(playerScoreboardObject.obj);
 			scoreboardObjects.Remove(playerScoreboardObject);
 		}
 	}
 
 	[ServerCallback]
-	ScoreboardObject findScoreboardByPlayer(short playerControllerId) {
-		if (doesScoreboardExistForPlayer(playerControllerId)) {
+	ScoreboardObject findScoreboardByPlayer(uint playerNetworkId) {
+		if (doesScoreboardExistForPlayer(playerNetworkId)) {
 			return scoreboardObjects.Find(delegate(ScoreboardObject obj) {
-				return obj.playerNetworkId == playerControllerId;
+				return obj.playerNetworkId == playerNetworkId;
 			});
 		}
 		return null;
 	}
 
 	[ServerCallback]
-	bool doesScoreboardExistForPlayer(short playerControllerId) {
+	bool doesScoreboardExistForPlayer(uint playerNetworkId) {
 		return scoreboardObjects.Exists(delegate(ScoreboardObject obj) {
-			return obj.playerNetworkId == playerControllerId;
+			return obj.playerNetworkId == playerNetworkId;
 		});
 	}
 }
@@ -68,9 +68,9 @@ public class ScoreHandler: NetworkBehaviour {
 public class ScoreboardObject {
 	public GameObject obj; //readonly
 	public PlayerScore score; //readonly
-	public short playerNetworkId; //readonly
+	public uint playerNetworkId; //readonly
 
-	public ScoreboardObject(GameObject newObj, short networkId) {
+	public ScoreboardObject(GameObject newObj, uint networkId) {
 		obj = newObj;
 		score = newObj.GetComponent<PlayerScore>();
 
