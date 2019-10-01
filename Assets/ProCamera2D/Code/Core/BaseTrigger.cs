@@ -30,7 +30,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 		bool _triggerEnabled;
 
-		override protected void Awake()
+		protected override void Awake()
 		{
 			base.Awake();
 
@@ -49,6 +49,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		override protected void OnEnable()
 		{
 			base.OnEnable();
+
+			if(ProCamera2D == null)
+				return;
 
 			if (_triggerEnabled)
 				Toggle(true);
@@ -145,10 +148,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			yield return new WaitForEndOfFrame();
 
 			var waitForSeconds = new WaitForSeconds(UpdateInterval);
+			var waitForSecondsRealtime = new WaitForSecondsRealtime(UpdateInterval);
 			while (true)
 			{
 				TestTrigger();
-				yield return waitForSeconds;
+				
+				if(ProCamera2D.IgnoreTimeScale)
+					yield return waitForSecondsRealtime;
+				else
+					yield return waitForSeconds;
 			}
 		}
 

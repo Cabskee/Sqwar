@@ -14,8 +14,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (target == null)
 				return;
 
-			ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
 			_script = MonoScript.FromMonoBehaviour((ProCamera2DPixelPerfect)target);
 		}
 
@@ -102,7 +100,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// Zoom
 			_tooltip = new GUIContent("Zoom", "The zoom level of the camera");
-			EditorGUILayout.PropertyField(serializedObject.FindProperty("Zoom"), _tooltip);
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("_zoom"), _tooltip);
 
 			// Snap movement to grid
 			EditorGUILayout.BeginHorizontal();

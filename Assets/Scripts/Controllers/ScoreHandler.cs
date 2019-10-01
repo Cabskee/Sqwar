@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine;
 
-public class ScoreHandler: NetworkBehaviour {
+public class ScoreHandler: MonoBehaviour {
 	public static ScoreHandler Instance = null;
 
 	public GameObject scoreboard;
 	public GameObject scoreboardObject;
-	public List<ScoreboardObject> scoreboardObjects = new List<ScoreboardObject>();
+	public Dictionary<int, ScoreboardItem> currentScoreboard = new Dictionary<int, ScoreboardItem>();
 
 	void Awake() {
 		if (Instance == null) {
@@ -18,62 +17,45 @@ public class ScoreHandler: NetworkBehaviour {
 		}
 	}
 
-	[ServerCallback]
-	public void updatePlayerInfo(List<Player> players) {
-		players.ForEach(delegate(Player player) {
-			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(player.networkId);
-			if (playerScoreboardObject == null) {
-				GameObject newScoreboardObjectObj = Instantiate(scoreboardObject, Vector3.zero, Quaternion.identity, scoreboard.transform);
-				ScoreboardObject newScoreboardObject = new ScoreboardObject(newScoreboardObjectObj, player.networkId);
-				newScoreboardObject.score.updatePlayerInfo(player);
+	public void addPlayerToScoreboard(int playerID, Player player) {
+		if (doesScoreboardExistForPlayer(playerID)) {
+			return;
+		}
 
-				scoreboardObjects.Add(newScoreboardObject);
-
-				NetworkServer.Spawn(newScoreboardObjectObj);
-			} else {
-				playerScoreboardObject.score.updatePlayerInfo(player);
-			}
-		});
+		GameObject newScoreboardObj = Instantiate(scoreboardObject, Vector3.zero, Quaternion.identity, scoreboard.transform);
+		ScoreboardItem newScoreboardItem = new ScoreboardItem(newScoreboardObj, player);
+		currentScoreboard.Add(playerID, newScoreboardItem);
 	}
 
-	[ServerCallback]
-	public void removePlayerFromScoreboard(uint playerNetworkId) {
+	public void removePlayerFromScoreboard(int playerID) {
 		// TODO: Hide scoreboard object for this player
-		if (doesScoreboardExistForPlayer(playerNetworkId)) {
-			ScoreboardObject playerScoreboardObject = findScoreboardByPlayer(playerNetworkId);
+		if (doesScoreboardExistForPlayer(playerID)) {
+			ScoreboardItem playerScoreboardObject = findScoreboardByPlayer(playerID);
 			Destroy(playerScoreboardObject.obj);
-			scoreboardObjects.Remove(playerScoreboardObject);
+			currentScoreboard.Remove(playerID);
 		}
 	}
 
-	[ServerCallback]
-	ScoreboardObject findScoreboardByPlayer(uint playerNetworkId) {
-		if (doesScoreboardExistForPlayer(playerNetworkId)) {
-			return scoreboardObjects.Find(delegate(ScoreboardObject obj) {
-				return obj.playerNetworkId == playerNetworkId;
-			});
+	ScoreboardItem findScoreboardByPlayer(int playerID) {
+		if (doesScoreboardExistForPlayer(playerID)) {
+			return currentScoreboard[playerID];
 		}
+
 		return null;
 	}
 
-	[ServerCallback]
-	bool doesScoreboardExistForPlayer(uint playerNetworkId) {
-		return scoreboardObjects.Exists(delegate(ScoreboardObject obj) {
-			return obj.playerNetworkId == playerNetworkId;
-		});
-	}
+	bool doesScoreboardExistForPlayer(int playerID) => currentScoreboard.ContainsKey(playerID);
 }
 
 [System.Serializable]
-public class ScoreboardObject {
-	public GameObject obj; //readonly
+public class ScoreboardItem {
 	public PlayerScore score; //readonly
-	public uint playerNetworkId; //readonly
+	public GameObject obj;
 
-	public ScoreboardObject(GameObject newObj, uint networkId) {
-		obj = newObj;
-		score = newObj.GetComponent<PlayerScore>();
+	public ScoreboardItem(GameObject scoreboardObj, Player player) {
+		obj = scoreboardObj;
+		score = scoreboardObj.GetComponent<PlayerScore>();
 
-		playerNetworkId = networkId;
+		scoreboardObj.GetComponent<PlayerScore>().setPlayerInfo(player);
 	}
 }

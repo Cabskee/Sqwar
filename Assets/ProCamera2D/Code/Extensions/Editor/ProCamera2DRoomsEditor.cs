@@ -26,8 +26,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (target == null)
 				return;
 
-			ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
 			var proCamera2DRooms = (ProCamera2DRooms)target;
 			
 			if (proCamera2DRooms.ProCamera2D == null)
@@ -285,6 +283,20 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			// Automatic room detection
 			_tooltip = new GUIContent("Automatic Room Activation", "If checked, ProCamera2D will automatically transition to the rooms based on the target(s) position. If disabled, you have to manually call the method EnterRoom(roomID)");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("AutomaticRoomActivation"), _tooltip);
+			
+			// Use relative position - Option only visible if the gameobject is not the ProCamera2D container
+			if (proCamera2DRooms.GetComponent<ProCamera2D>() == null)
+			{
+				_tooltip = new GUIContent("Use Relative Positioning", "If checked, the rooms positions are relative to the containing GameObject");
+				EditorGUILayout.PropertyField(serializedObject.FindProperty("UseRelativePosition"), _tooltip);
+			}
+			else
+			{
+				GUI.enabled = false;
+				_tooltip = new GUIContent("Use Relative Positioning", "If checked, the rooms positions are relative to the containing GameObject. Only supported if the Rooms extension is on a GameObject different than the ProCamera2D core component");
+				EditorGUILayout.PropertyField(serializedObject.FindProperty("UseRelativePosition"), _tooltip);
+				GUI.enabled = true;
+			}
 
 			EditorGUILayout.Space();
 
@@ -328,8 +340,16 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				// Button to toggle room editing
 				var buttonSize = Mathf.Min(proCamera2DRooms.Rooms[i].Dimensions.width / 2f, proCamera2DRooms.Rooms[i].Dimensions.height / 2f);
 				buttonSize = Mathf.Min(1, buttonSize);
+
+				var buttonPosition = proCamera2DRooms.Rooms[i].Dimensions.position;
+				if (proCamera2DRooms.UseRelativePosition)
+				{
+					buttonPosition.x += Vector3H(proCamera2DRooms.transform.position);
+					buttonPosition.y += Vector3V(proCamera2DRooms.transform.position);
+				}
+				
 				if (Handles.Button(
-					proCamera2DRooms.Rooms[i].Dimensions.position,
+					buttonPosition,
 					Quaternion.LookRotation(VectorHVD(0, 0, 1)),
 					buttonSize,
 					buttonSize,
@@ -346,7 +366,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				}
 
 				// Room number
-				Handles.Label(VectorHV(proCamera2DRooms.Rooms[i].Dimensions.position.x, proCamera2DRooms.Rooms[i].Dimensions.position.y), i.ToString(), guiStyle);
+				Handles.Label(VectorHV(buttonPosition.x, buttonPosition.y), i.ToString(), guiStyle);
 			}
 
 			// Room rect editor
@@ -359,16 +379,35 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 				// Move
 				var oldPos = VectorHV(currentDimensions.position.x, currentDimensions.position.y);
+				if (proCamera2DRooms.UseRelativePosition)
+				{
+					oldPos.x += Vector3H(proCamera2DRooms.transform.position);
+					oldPos.y += Vector3V(proCamera2DRooms.transform.position);
+				}
+				
 				var newPos = Handles.PositionHandle(oldPos, Quaternion.identity);
 				if (newPos != oldPos)
 				{
 					Undo.RecordObject(proCamera2DRooms, "MoveRoom");
 					currentDimensions.position = new Vector2(Vector3H(newPos), Vector3V(newPos));
+					
+					if (proCamera2DRooms.UseRelativePosition)
+					{
+						currentDimensions.x -= Vector3H(proCamera2DRooms.transform.position);
+						currentDimensions.y -= Vector3V(proCamera2DRooms.transform.position);
+					}
 				}
 
 				// Draw rect editor
+				var currentDimensionsRelative = currentDimensions;
+				if (proCamera2DRooms.UseRelativePosition)
+				{
+					currentDimensionsRelative.x += Vector3H(proCamera2DRooms.transform.position);
+					currentDimensionsRelative.y += Vector3V(proCamera2DRooms.transform.position);
+				}
+				
 				var newDimensions = ResizeRect(
-										currentDimensions,
+										currentDimensionsRelative,
 #if UNITY_5_5_OR_NEWER
 										Handles.CubeHandleCap,
 #else
@@ -381,14 +420,21 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 
 				// Undo
-				if (newDimensions.x != currentDimensions.x ||
-					newDimensions.y != currentDimensions.y ||
-					newDimensions.width != currentDimensions.width ||
-					newDimensions.height != currentDimensions.height)
+				if (newDimensions.x != currentDimensionsRelative.x ||
+					newDimensions.y != currentDimensionsRelative.y ||
+					newDimensions.width != currentDimensionsRelative.width ||
+					newDimensions.height != currentDimensionsRelative.height)
 					Undo.RecordObject(proCamera2DRooms, "ResizeRect");
 
 				// Save new dimensions
-				proCamera2DRooms.Rooms[_currentlyEditingRoom].Dimensions = newDimensions;
+				var newDimensionsRelative = newDimensions;
+				if (proCamera2DRooms.UseRelativePosition)
+				{
+					newDimensionsRelative.x -= Vector3H(proCamera2DRooms.transform.position);
+					newDimensionsRelative.y -= Vector3V(proCamera2DRooms.transform.position);
+				}
+				
+				proCamera2DRooms.Rooms[_currentlyEditingRoom].Dimensions = newDimensionsRelative;
 
 				// Redraw views
 				if (Event.current.rawType == EventType.Used)

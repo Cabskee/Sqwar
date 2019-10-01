@@ -56,7 +56,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             set
             {
                 _targetHeight = value;
-                _targetWidth = value * TargetAspectRatio;
+                _targetWidth = ContentFitterMode == ContentFitterMode.AspectRatio ? value * TargetAspectRatio : value * ScreenAspectRatio;
             }
         }
         [SerializeField]
@@ -69,7 +69,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             set
             {
                 _targetWidth = value;
-                _targetHeight = value / TargetAspectRatio;
+                _targetHeight = ContentFitterMode == ContentFitterMode.AspectRatio ? value / TargetAspectRatio : value / ScreenAspectRatio;
             }
         }
         [SerializeField]

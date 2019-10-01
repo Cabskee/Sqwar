@@ -12,8 +12,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         void OnEnable()
         {
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
             _script = MonoScript.FromMonoBehaviour((ProCamera2DTriggerRails)target);
 
             var proCamera2DTriggerRails = (ProCamera2DTriggerRails)target;

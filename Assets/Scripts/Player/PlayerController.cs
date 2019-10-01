@@ -1,19 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using Com.LuisPedroFonseca.ProCamera2D;
-using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
 
-public class PlayerController: NetworkBehaviour {
+public class PlayerController: MonoBehaviour {
 	CharacterController2D charController;
 
-	[SyncVar] public string playerName;
-	[SyncVar] public Color color;
-	[SyncVar] public int livesLeft;
-	[SyncVar] public Constant.FacingDirection facingDirection;
-	[SyncVar] public Constant.PlayerState state;
+	public string playerName;
+	public int playerID;
+	public Color color;
+
+	// TODO: Make these readonly
+	public Constant.FacingDirection facingDirection;
+	public Constant.PlayerState state;
 
 	public GameObject carriedBlock;
 
@@ -24,49 +25,35 @@ public class PlayerController: NetworkBehaviour {
 	public float groundDamping;
 	public float airDamping;
 	public float jumpHeight;
-	Vector3 playerVelocity;
 
-	[SyncVar] bool jumpedSinceGrounded;
+	bool jumpedSinceGrounded;
 
 	public Vector2 pickUpDistance;
 
 	void Awake() {
 		charController = GetComponent<CharacterController2D>();
+		carriedBlock.SetActive(false);
 	}
 
-	public override void OnStartServer() {
-		livesLeft = GameHandler.Instance.startingLives;
+	public void initialize(int playerID, string playerName, Color color) {
+		this.color = color;
+		this.playerID = playerID;
+		this.playerName = playerName;
 
-		setInvulnerable();
-	}
-
-	public override void OnStartLocalPlayer() {
-		color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
-		playerName = "Player "+Random.Range(0, 250);
-		// TODO:
-		// Eventually send CmdRequestToSetPlayerColor() with the player's selected color and move all this server
-		// initialization stuff into its own callback that waits for all this shit or something like that
-
-		// Send this player's initializations
-		CmdSendLocalPlayerInitializations(playerName, color);
-
-		// Set camera follow
-		ProCamera2D.Instance.AddCameraTarget(transform);
+		applyPlayerColor();
 	}
 
 	void Start() {
-		if (isLocalPlayer) {
-			Prime31.ZestKit.ActionTask.every(0.033f, this, task => {
-				(task.context as PlayerController).CmdSendPositionToServer(transform.position);
-			});
-		}
+		// Set as camera target
+		ProCamera2D.Instance.AddCameraTarget(transform);
+	}
 
-		carriedBlock.SetActive(false);
+	void OnEnable() {
+		charController.onControllerCollidedEvent += boundaryTriggerEvent;
+	}
 
-		applyPlayerColor();
-
-		if (isServer)
-			charController.onControllerCollidedEvent += boundaryTriggerEvent;
+	void OnDisable() {
+		charController.onControllerCollidedEvent -= boundaryTriggerEvent;
 	}
 
 	void boundaryTriggerEvent(RaycastHit2D ray) {
@@ -101,13 +88,8 @@ public class PlayerController: NetworkBehaviour {
 		}
 	}
 
+	Vector3 playerVelocity = Vector3.zero;
 	void Update() {
-		if (!isLocalPlayer) {
-			applyRotation();
-
-			return;
-		}
-
 		if (isInState(Constant.PlayerState.Dead))
 			return;
 
@@ -116,114 +98,112 @@ public class PlayerController: NetworkBehaviour {
 			playerVelocity.y = 0;
 		}
 
-		if (Input.GetKeyDown(KeyCode.Space) && (charController.isGrounded || !jumpedSinceGrounded)) {
+		if (Input.GetButtonDown(getInputName("jump")) && (charController.isGrounded || !jumpedSinceGrounded)) {
 			playerVelocity.y = Mathf.Sqrt(2f * jumpHeight * gravity);
-			jumpedSinceGrounded = true;
+			jumpedSinceGrounded = !charController.isGrounded;
 		}
 
-		Constant.FacingDirection oldDirection = facingDirection;
-		if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) {
+		if (Input.GetAxis(getInputName("vertical")) > 0.0f) { // Looking up
 			facingDirection = Constant.FacingDirection.Up;
-		}  else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow) || (isCarryingBlock() && facingDirection == Constant.FacingDirection.Down && charController.isGrounded)) {
+		} else if (Input.GetAxis(getInputName("horizontal")) > 0.0f || (isCarryingBlock() && facingDirection == Constant.FacingDirection.Down && charController.isGrounded)) {
 			facingDirection = Constant.FacingDirection.Right;
-		} else if ((Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) && (!isCarryingBlock() || !charController.isGrounded)) {
+		} else if ((Input.GetAxis(getInputName("vertical"))) < 0.0f && (!isCarryingBlock() || !charController.isGrounded)) {
 			facingDirection = Constant.FacingDirection.Down;
-		} else if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) {
+		} else if (Input.GetAxis(getInputName("horizontal")) < 0.0f) {
 			facingDirection = Constant.FacingDirection.Left;
 		}
 
 		applyRotation();
 
-		// Only send new direction if it has changed
-		if (facingDirection != oldDirection)
-			CmdSendRotationToServer(facingDirection);
-
 		// Pickup a nearby block or fire a carried block
-		if (Input.GetKeyDown(KeyCode.R) || Input.GetKeyDown(KeyCode.LeftShift)) {
-			if (!isCarryingBlock()) { // Pick up the closest Block
-				if (findNearestBlockToPickup()) {
-					// Tell the server you picked up this block and pick it up clientside
-					CmdRequestToPickupBlock();
-					carriedBlock.SetActive(true);
-				}
-			} else { // Fire a Carried Block
-				CmdRequestToFireBlock(facingDirection);
-			}
+		if (Input.GetButtonDown(getInputName("pickup")) || Input.GetButtonDown(getInputName("fire"))) {
+			ActionButtonClicked();
 		}
 
 		// Apply horizontal speed smoothing
 		float smoothedMovement = charController.isGrounded ? groundDamping : airDamping;
-		playerVelocity.x = Mathf.Lerp(playerVelocity.x, Input.GetAxisRaw("Horizontal") * speed, Time.deltaTime*smoothedMovement);
+		playerVelocity.x = Mathf.Lerp(playerVelocity.x, Input.GetAxisRaw(getInputName("horizontal")) * speed, Time.deltaTime*smoothedMovement);
 
 		// Apply downward gravity
 		playerVelocity.y += -gravity * Time.deltaTime;
 
+		// TODO: If you hold Down, you should move down quicker
+		// if (!charController.isGrounded && Input.GetAxis(getInputName("vertical")) < 0.0f) {
+		// 	playerVelocity.y += Input.GetAxisRaw(getInputName("vertical")) * speed;
+		// }
+
 		// Update movement
 		charController.move(playerVelocity * Time.deltaTime);
 
-		// Update latest clientVelocity
 		playerVelocity = charController.velocity;
 	}
 
-	[Command]
-	void CmdSendRotationToServer(Constant.FacingDirection newDirection) {
-		facingDirection = newDirection;
-	}
-
-	[Command]
-	void CmdSendPositionToServer(Vector3 newPosition) {
-		transform.position = newPosition;
-
-		RpcSendPositionToClient(newPosition);
-	}
-
-	[ClientRpc]
-	void RpcSendPositionToClient(Vector3 newPosition) {
-		if (isLocalPlayer) {
-			if (Mathf.Abs(transform.position.x - newPosition.x) >= 2f || Mathf.Abs(transform.position.y - newPosition.y) >= 4f) {
-				transform.position = newPosition; // Rubberband
-			}
-		} else {
-			transform.position = Vector3.SmoothDamp(transform.position, newPosition, ref playerVelocity, Time.deltaTime*1f);
+	string getInputName(string action) {
+		switch (action) {
+			case "horizontal":
+				return $"Horizontal{playerID}";
+			case "vertical":
+				return $"Vertical{playerID}";
+			case "jump":
+				return $"Jump{playerID}";
+			case "pickup":
+			case "fire":
+				return $"Action{playerID}";
 		}
+
+		return "";
 	}
 
 	// PLAYER STATE FUNCTIONS
 
-	[ServerCallback]
 	public void killPlayer() {
 		if (isInState(Constant.PlayerState.Alive)) {
 			setPlayerState(Constant.PlayerState.Dead);
 
-			livesLeft -= 1;
+			// Remove a life from this player
+			GameHandler.Instance.PlayerLostALife(playerID);
 
 			Prime31.ZestKit.ActionTask.afterDelay(5f, this, task => {
 				(task.context as PlayerController).respawnPlayer();
 			});
-
-			// TODO: Update scoreboard
 		}
 	}
 
-	[ServerCallback]
 	public void respawnPlayer() {
 		// TODO: Move this player to a respawn point
 
 		setInvulnerable();
 	}
 
-	[ServerCallback]
 	void setInvulnerable() {
 		setPlayerState(Constant.PlayerState.Invulnerable);
 
+		GetComponent<SpriteRenderer>().enabled = false;
+		Prime31.ZestKit.ActionTask.afterDelay(0.5f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = true;
+		});
+		Prime31.ZestKit.ActionTask.afterDelay(1f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = false;
+		});
+		Prime31.ZestKit.ActionTask.afterDelay(1.5f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = true;
+		});
+		Prime31.ZestKit.ActionTask.afterDelay(2f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = false;
+		});
+		Prime31.ZestKit.ActionTask.afterDelay(2.5f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = true;
+		});
 		Prime31.ZestKit.ActionTask.afterDelay(3f, this, task => {
-			(task.context as PlayerController).setPlayerState(Constant.PlayerState.Alive);
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = false;
+		});
+		Prime31.ZestKit.ActionTask.afterDelay(3.5f, this, task => {
+			(task.context as PlayerController).GetComponent<SpriteRenderer>().enabled = true;
 		});
 	}
 
-	bool isInvulnerable() {
-		return isInState(Constant.PlayerState.Invulnerable);
-	}
+	bool isInvulnerable() => isInState(Constant.PlayerState.Invulnerable);
+	bool isInState(Constant.PlayerState checkState) => state == checkState;
 	bool isInStates(Constant.PlayerState[] checkStates) {
 		foreach (Constant.PlayerState state in checkStates) {
 			if (isInState(state))
@@ -231,42 +211,35 @@ public class PlayerController: NetworkBehaviour {
 		}
 		return false;
 	}
-	bool isInState(Constant.PlayerState checkState) {
-		return state == checkState;
-	}
 
-	[ServerCallback]
-	void setPlayerState(Constant.PlayerState newState) {
-		state = newState;
-	}
+	void setPlayerState(Constant.PlayerState newState) => state = newState;
 
 	// HELPER FUNCTIONS
 
-	public bool isCarryingBlock() {
-		return carriedBlock.activeSelf;
-	}
+	public bool isCarryingBlock() => carriedBlock.activeSelf;
 
-	GameObject findNearestBlockToPickup() {
+	GameObject getNearestBlockInDirection() {
 		GameObject nearestBlock = null;
 		Vector2 nearestDistance = Vector2.positiveInfinity;
+		Vector3 playerPos = transform.position;
+
 		foreach (GameObject block in GameObject.FindGameObjectsWithTag(Constant.TAG_PICKUPBLOCK)) {
-			Vector2 newDist = new Vector2(Mathf.Abs(transform.position.x - block.transform.position.x), Mathf.Abs(transform.position.y - block.transform.position.y));
-			if (newDist.x <= pickUpDistance.x && newDist.y <= pickUpDistance.y && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
-				nearestDistance = newDist;
-				nearestBlock = block;
+			Vector3 blockPos = block.transform.position;
+
+			if (facingDirection == Constant.FacingDirection.Up && blockPos.y > playerPos.y
+				|| facingDirection == Constant.FacingDirection.Right && blockPos.x > playerPos.x
+				|| facingDirection == Constant.FacingDirection.Down && blockPos.y < playerPos.y
+				|| facingDirection == Constant.FacingDirection.Left && blockPos.x < playerPos.x
+			) {
+				Vector2 newDist = new Vector2(Mathf.Abs(playerPos.x - blockPos.x), Mathf.Abs(playerPos.y - blockPos.y));
+				if (newDist.x <= pickUpDistance.x && newDist.y <= pickUpDistance.y && newDist.x <= nearestDistance.x && newDist.y <= nearestDistance.y) {
+					nearestDistance = newDist;
+					nearestBlock = block;
+				}
 			}
 		};
+
 		return nearestBlock;
-	}
-
-	[Command]
-	void CmdSendLocalPlayerInitializations(string newName, Color newColor) {
-		playerName = newName;
-		color = newColor;
-
-		applyPlayerColor();
-
-		GameHandler.Instance.addPlayer(this);
 	}
 
 	void applyPlayerColor() {
@@ -274,41 +247,37 @@ public class PlayerController: NetworkBehaviour {
 		carriedBlock.GetComponent<SpriteRenderer>().color = color;
 	}
 
-	// PICKING UP BLOCK
-
-	[Command]
-	void CmdRequestToPickupBlock() {
-		GameObject nearestBlock = null;
-		if (!isCarryingBlock()) {
-			nearestBlock = findNearestBlockToPickup();
-			if (nearestBlock) {
-				NetworkServer.Destroy(nearestBlock);
-				carriedBlock.SetActive(true);
-				RpcToggleCarriedBlock(true);
-				return;
-			}
+	void ActionButtonClicked() {
+		if (!isCarryingBlock()) { // If not carrying a block
+			PickupNearestBlock(); // Attempt to pickup the nearest in direction you're facing
+		} else { // If already carrying a block
+			FireBlock(); // Attempt to fire it
 		}
-		RpcToggleCarriedBlock(false);
 	}
 
-	// THROWING BLOCK
-
-	[Command]
-	[ServerCallback]
-	void CmdRequestToFireBlock(Constant.FacingDirection facingDirection) {
+	void PickupNearestBlock() {
 		if (isCarryingBlock()) {
-			BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, GetComponent<NetworkIdentity>());
+			FireBlock();
+			return;
+		}
 
-			carriedBlock.SetActive(false);
-			RpcToggleCarriedBlock(false);
-		} else {
-			CmdRequestToPickupBlock();
+		GameObject nearestBlock = getNearestBlockInDirection();
+		if (nearestBlock) {
+			Destroy(nearestBlock);
+			ToggleCarriedBlock(true);
+			return;
 		}
 	}
 
-	[ClientRpc]
-	[ClientCallback]
-	void RpcToggleCarriedBlock(bool toggle) {
-		carriedBlock.SetActive(toggle);
+	void FireBlock() {
+		if (!isCarryingBlock()) {
+			PickupNearestBlock();
+			return;
+		}
+
+		BlockSpawner.Instance.createShootingBlockAtLocation(carriedBlock.transform.position, facingDirection, color, playerID);
+		ToggleCarriedBlock(false);
 	}
+
+	void ToggleCarriedBlock(bool toggle) => carriedBlock.SetActive(toggle);
 }

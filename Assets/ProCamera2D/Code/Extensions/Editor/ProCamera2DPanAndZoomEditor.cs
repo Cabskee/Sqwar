@@ -15,8 +15,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (target == null)
 				return;
 
-			ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
 			_script = MonoScript.FromMonoBehaviour((ProCamera2DPanAndZoom)target);
 		}
 
@@ -42,6 +40,25 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				EditorGUILayout.HelpBox("ProCamera2D is not set.", MessageType.Error, true);
 
 			EditorGUILayout.Space();
+			
+			// Input method
+			_tooltip = new GUIContent("Automatic Input Detection", "If enabled, the input method will be automatically detected. Mouse on desktop and touch on mobile. Disable to enable both (beta).");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("AutomaticInputDetection"), _tooltip);
+
+			if (!proCamera2DPanAndZoom.AutomaticInputDetection)
+			{
+				EditorGUI.indentLevel = 1;
+				
+				_tooltip = new GUIContent("Use Mouse Input", "");
+				EditorGUILayout.PropertyField(serializedObject.FindProperty("UseMouseInput"), _tooltip);
+				
+				_tooltip = new GUIContent("Use Touch Input", "");
+				EditorGUILayout.PropertyField(serializedObject.FindProperty("UseTouchInput"), _tooltip);
+				
+				EditorGUI.indentLevel = 0;
+
+				EditorGUILayout.Space();
+			}
 
 			// Disable over uGUI
 			_tooltip = new GUIContent("Disable Over uGUI", "If enabled, the camera won't pan or zoom if the user has a pointer (or touch) over a UI element");

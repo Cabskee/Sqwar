@@ -6,14 +6,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     [CustomEditor(typeof(ProCamera2DPointerInfluence))]
     public class ProCamera2DPointerInfluenceEditor : Editor
     {
-        void OnEnable()
-        {
-            if (target == null)
-                return;
-            
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-        }
-
         public override void OnInspectorGUI()
         {
             if (target == null)

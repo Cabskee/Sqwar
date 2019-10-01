@@ -25,7 +25,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 		float _zoomVelocity;
 
-		float _initialCamSize;
 		float _previousCamSize;
 		float _targetCamSize;
 		float _targetCamSizeSmoothed;
@@ -40,8 +39,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (ProCamera2D == null)
 				return;
 
-			_initialCamSize = ProCamera2D.ScreenSizeInWorldCoordinates.y * .5f;
-			_targetCamSize = _initialCamSize;
+			_targetCamSize = ProCamera2D.StartScreenSizeInWorldCoordinates.y * .5f;
 			_targetCamSizeSmoothed = _targetCamSize;
 
 			ProCamera2D.AddSizeOverrider(this);
@@ -50,8 +48,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		protected override void OnDestroy()
 		{
 			base.OnDestroy();
-
-			ProCamera2D.RemoveSizeOverrider(this);
+			
+			if(ProCamera2D)
+				ProCamera2D.RemoveSizeOverrider(this);
 		}
 
 		#region ISizeOverrider implementation
@@ -64,7 +63,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			_targetCamSizeSmoothed = ProCamera2D.ScreenSizeInWorldCoordinates.y * .5f;
 
 			if (DisableWhenOneTarget && ProCamera2D.CameraTargets.Count <= 1)
-				_targetCamSize = _initialCamSize;
+				_targetCamSize = ProCamera2D.StartScreenSizeInWorldCoordinates.y * .5f;
 			else
 			{
 				if (_previousCamSize == ProCamera2D.ScreenSizeInWorldCoordinates.y)
@@ -91,9 +90,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			_zoomVelocity = 0;
 
-			_previousCamSize = _initialCamSize;
-			_targetCamSize = _initialCamSize;
-			_targetCamSizeSmoothed = _initialCamSize;
+			_previousCamSize = ProCamera2D.StartScreenSizeInWorldCoordinates.y * .5f;
+			_targetCamSize = _previousCamSize;
+			_targetCamSizeSmoothed = _previousCamSize;
 		}
 
 		void UpdateTargetCamSize()
@@ -144,8 +143,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 					_targetCamSize = distanceMaxY / ZoomInBorder;
 			}
 
-			_minCameraSize = _initialCamSize / MaxZoomInAmount;
-			_maxCameraSize = _initialCamSize * MaxZoomOutAmount;
+			_minCameraSize = (ProCamera2D.StartScreenSizeInWorldCoordinates.y * .5f) / MaxZoomInAmount;
+			_maxCameraSize = (ProCamera2D.StartScreenSizeInWorldCoordinates.y * .5f) * MaxZoomOutAmount;
 			_targetCamSize = Mathf.Clamp(_targetCamSize, _minCameraSize, _maxCameraSize);
 		}
 

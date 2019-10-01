@@ -1,9 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
-using Prime31;
 
 public class ShootingBlock: Block {
 	readonly string[] collisionLayers = new string[]{
@@ -14,30 +12,30 @@ public class ShootingBlock: Block {
 		Constant.LAYER_PLAYER
 	};
 
-	[ServerCallback]
-	void Start() {
+	void OnEnable() {
 		blockController.onControllerCollidedEvent += onShootingBlockCollision;
 	}
 
-	[Server]
+	void OnDisable() {
+		blockController.onControllerCollidedEvent -= onShootingBlockCollision;
+	}
+
 	void onShootingBlockCollision(RaycastHit2D ray) {
 		boundaryTriggerEvent(ray);
 
 		if (!isBlockDestroying()) { // If block didn't hit boundary
-			if (didCollideWithALayer(ray, collisionLayers)) { // If block hit something noteworth
-				if (!didCollideWithLayer(ray, Constant.LAYER_PLATFORM)) { // If block did NOT hit the platform
-					if (didCollideWithLayer(ray, Constant.LAYER_PLAYER)) { // If the block hit a player
-						if (!isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<NetworkIdentity>().netId.Value)) {
-							// If block hit another player
-							ray.transform.GetComponent<PlayerController>().killPlayer();
-						} else {
-							// If block hit yourself
-							Debug.Log("This is your own block, not sure what to do");
-						}
+			if (didCollideWithALayer(ray, collisionLayers)) { // If block hit something noteworthy
+				if (didCollideWithLayer(ray, Constant.LAYER_PLAYER)) { // If the block hit a player
+					if (!isPlayerOwnerOfBlock(ray.transform.gameObject.GetComponent<PlayerController>().playerID)) {
+						// If block hit another player
+						GameHandler.Instance.PlayerGotAKill(ownerID);
+						ray.transform.GetComponent<PlayerController>().killPlayer();
 					} else {
-						// If block hit another block (Falling or Placed)
-						ray.transform.GetComponent<Block>().collidedWithBlock();
+						return; // Block hit yourself, it should keep going
 					}
+				} else {
+					// If block hit another block (Falling or Placed)
+					ray.transform.GetComponent<Block>().destroyBlock();
 				}
 
 				// Block hit something, it should destroy itself

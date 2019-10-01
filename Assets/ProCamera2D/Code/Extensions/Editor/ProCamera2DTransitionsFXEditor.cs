@@ -15,8 +15,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (target == null)
                 return;
             
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
             _script = MonoScript.FromMonoBehaviour((ProCamera2DTransitionsFX)target);
         }
 
@@ -139,10 +137,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             EditorGUILayout.Space();
             _tooltip = new GUIContent("Start Scene On Enter State", "If selected, on scene start the Enter FX will be loaded.");
             EditorGUILayout.PropertyField(serializedObject.FindProperty("StartSceneOnEnterState"), _tooltip);
-            
-            // Ignore delta time
-            _tooltip = new GUIContent("Use Realtime", "If selected, the transitions will play independently of the current deltaTime.");
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("UseRealtime"), _tooltip);
 
 
             // Limit values

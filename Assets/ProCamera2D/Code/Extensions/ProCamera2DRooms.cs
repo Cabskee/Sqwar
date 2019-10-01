@@ -22,6 +22,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		[Range(0.1f, 10f)]
 		public float ZoomScale;
 
+		public int InternalID;
+
 		public Room(Room otherRoom)
 		{
 			Dimensions = otherRoom.Dimensions;
@@ -53,18 +55,20 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			get { return _currentRoomIndex; }
 		}
-		int _currentRoomIndex = -1;
+		private int _currentRoomIndex = -1;
 
 		public int PreviousRoomIndex
 		{
 			get { return _previousRoomIndex; }
 		}
-		int _previousRoomIndex = -1;
+		private int _previousRoomIndex = -1;
 
 		public Room CurrentRoom
 		{
 			get { return (_currentRoomIndex >= 0 && _currentRoomIndex < Rooms.Count) ? Rooms[_currentRoomIndex] : null; }
 		}
+
+		public float OriginalSize { get; private set; }
 
 		public List<Room> Rooms = new List<Room>();
 
@@ -80,6 +84,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		public EaseType RestoreEaseType = EaseType.EaseInOut;
 
 		public bool AutomaticRoomActivation = true;
+		public bool UseRelativePosition;
 
 		public RoomEvent OnStartedTransition;
 		public RoomEvent OnFinishedTransition;
@@ -94,7 +99,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 		Coroutine _transitionRoutine;
 
-		float _originalSize;
+		private int _currentRoomID = -1;
 
 		override protected void Awake()
 		{
@@ -103,7 +108,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			_numericBoundaries = ProCamera2D.GetComponent<ProCamera2DNumericBoundaries>();
 			_defaultNumericBoundariesSettings = _numericBoundaries.Settings;
 
-			_originalSize = ProCamera2D.ScreenSizeInWorldCoordinates.y / 2;
+			OriginalSize = ProCamera2D.ScreenSizeInWorldCoordinates.y / 2;
 
 			ProCamera2D.AddPositionOverrider(this);
 			ProCamera2D.AddSizeOverrider(this);
@@ -111,6 +116,14 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 		void Start()
 		{
+			var instanceID = GetInstanceID();
+			var count = 0;
+			foreach (var room in Rooms)
+			{
+				room.InternalID = instanceID + count;
+				count++;
+			}
+			
 			StartCoroutine(TestRoomRoutine());
 
 			if (TransitionInstanlyOnStart)
@@ -128,6 +141,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		protected override void OnDestroy()
 		{
 			base.OnDestroy();
+			
+			if(ProCamera2D == null) return;
 
 			ProCamera2D.RemovePositionOverrider(this);
 			ProCamera2D.RemoveSizeOverrider(this);
@@ -181,7 +196,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				targetPos = TriggerTarget.position;
 
 			var roomToEnter = ComputeCurrentRoom(targetPos);
-
+			
 			if (roomToEnter != -1 && _currentRoomIndex != roomToEnter)
 			{
 				EnterRoom(roomToEnter);
@@ -204,8 +219,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			for (int i = 0; i < Rooms.Count; i++)
 			{
 				if (Utils.IsInsideRectangle(
-						Rooms[i].Dimensions.x,
-						Rooms[i].Dimensions.y,
+						Rooms[i].Dimensions.x + (UseRelativePosition ? _transform.position.x : 0),
+						Rooms[i].Dimensions.y + (UseRelativePosition ? _transform.position.y : 0),
 						Rooms[i].Dimensions.width,
 						Rooms[i].Dimensions.height,
 						Vector3H(targetPos),
@@ -222,19 +237,20 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		/// Enter a room. Only use when the AutomaticRoomActivation is set to false.
 		/// </summary>
 		/// <param name="roomIndex">The room number on the list</param>
-		public void EnterRoom(int roomIndex, bool useTransition = true)
+		/// <param name="useTransition">Use a camera movement transition</param>
+		/// <param name="forceEntrance">Forces the transition to the room (even if the current room is the same)</param>
+		public void EnterRoom(int roomIndex, bool useTransition = true, bool forceEntrance = false)
 		{
 			if (roomIndex < 0 || roomIndex > Rooms.Count - 1)
-			{
-				Debug.LogError("Can't find room with index: " + roomIndex);
-				return;
-			}
+				throw new System.Exception("Can't find room with index: " + roomIndex);
 
-			if (roomIndex == _currentRoomIndex)
+			if (!forceEntrance && Rooms[roomIndex].InternalID == _currentRoomID)
 				return;
 
 			_previousRoomIndex = _currentRoomIndex;
 			_currentRoomIndex = roomIndex;
+			
+			_currentRoomID = Rooms[roomIndex].InternalID;
 
 			TransitionToRoom(Rooms[_currentRoomIndex], useTransition);
 
@@ -246,9 +262,16 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		/// Enter a room. Only use when the AutomaticRoomActivation is set to false.
 		/// </summary>
 		/// <param name="roomID">The room ID</param>
-		public void EnterRoom(string roomID, bool useTransition = true)
+		/// <param name="useTransition">Use a camera movement transition</param>
+		/// <param name="forceEntrance">Forces the transition to the room (even if the current room is the same)</param>
+		public void EnterRoom(string roomID, bool useTransition = true, bool forceEntrance = false)
 		{
-			EnterRoom(Rooms.FindIndex(room => room.ID == roomID), useTransition);
+			var foundIndex = Rooms.FindIndex(room => room.ID == roomID);
+
+			if (foundIndex < 0)
+				throw new System.Exception("Can't find room with ID: " + roomID);
+
+			EnterRoom(foundIndex, useTransition, forceEntrance);
 		}
 
 		/// <summary>
@@ -256,17 +279,17 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		/// </summary>
 		public void ExitRoom()
 		{
+			_currentRoomIndex = -1;
+			_currentRoomID = -1;
 			if (RestoreOnRoomExit)
 			{
-				_currentRoomIndex = -1;
-
 				if (OnStartedTransition != null)
 					OnStartedTransition.Invoke(_currentRoomIndex, _previousRoomIndex);
 
 				if (_transitionRoutine != null)
 					StopCoroutine(_transitionRoutine);
 
-				_transitionRoutine = StartCoroutine(TransitionRoutine(_defaultNumericBoundariesSettings, _originalSize, RestoreDuration, RestoreEaseType));
+				_transitionRoutine = StartCoroutine(TransitionRoutine(_defaultNumericBoundariesSettings, OriginalSize, RestoreDuration, RestoreEaseType));
 			}
 
 			if (OnExitedAllRooms != null)
@@ -343,18 +366,37 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			return Rooms.Find((Room obj) => obj.ID == roomID);
 		}
+		
+		/// <summary>
+		/// Returns an appropriate camera size for the specified rect representing a room
+		/// </summary>
+		/// <param name="roomRect">The room rect</param>
+		public float GetCameraSizeForRoom(Rect roomRect)
+		{
+			var scaleFactorW = roomRect.width / ProCamera2D.ScreenSizeInWorldCoordinates.x;
+			var scaleFactorH = roomRect.height / ProCamera2D.ScreenSizeInWorldCoordinates.y;
+
+			if (scaleFactorW < scaleFactorH)
+				return roomRect.width / ProCamera2D.GameCamera.aspect / 2f;
+			else
+				return roomRect.height / 2f;
+		}
 
 		IEnumerator TestRoomRoutine()
 		{
 			yield return new WaitForEndOfFrame();
 
 			var waitForSeconds = new WaitForSeconds(UpdateInterval);
+			var waitForSecondsRealtime = new WaitForSecondsRealtime(UpdateInterval);
 			while (true)
 			{
 				if (AutomaticRoomActivation)
 					TestRoom();
 
-				yield return waitForSeconds;
+				if(ProCamera2D.IgnoreTimeScale)
+					yield return waitForSecondsRealtime;
+				else
+					yield return waitForSeconds;
 			}
 		}
 
@@ -369,13 +411,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			{
 				UseNumericBoundaries = true,
 				UseTopBoundary = true,
-				TopBoundary = room.Dimensions.y + room.Dimensions.height / 2,
+				TopBoundary = (room.Dimensions.y + (UseRelativePosition ? _transform.position.y : 0)) + room.Dimensions.height / 2,
 				UseBottomBoundary = true,
-				BottomBoundary = room.Dimensions.y - room.Dimensions.height / 2,
+				BottomBoundary = (room.Dimensions.y + (UseRelativePosition ? _transform.position.y : 0)) - room.Dimensions.height / 2,
 				UseLeftBoundary = true,
-				LeftBoundary = room.Dimensions.x - room.Dimensions.width / 2,
+				LeftBoundary = (room.Dimensions.x + (UseRelativePosition ? _transform.position.x : 0)) - room.Dimensions.width / 2,
 				UseRightBoundary = true,
-				RightBoundary = room.Dimensions.x + room.Dimensions.width / 2
+				RightBoundary = (room.Dimensions.x + (UseRelativePosition ? _transform.position.x : 0)) + room.Dimensions.width / 2
 			};
 
 			// Size
@@ -385,9 +427,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			{
 				targetSize = cameraSizeForRoom;
 			}
-			else if (room.Zoom && _originalSize * room.ZoomScale < cameraSizeForRoom)
+			else if (room.Zoom && OriginalSize * room.ZoomScale <= cameraSizeForRoom)
 			{
-				targetSize = _originalSize * room.ZoomScale;
+				targetSize = OriginalSize * room.ZoomScale;
 			}
 			else if (cameraSizeForRoom < targetSize)
 			{
@@ -473,17 +515,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				verticalPos = numericBoundaries.TopBoundary - halfCameraHeight;
 		}
 
-		float GetCameraSizeForRoom(Rect roomRect)
-		{
-			var scaleFactorW = roomRect.width / ProCamera2D.ScreenSizeInWorldCoordinates.x;
-			var scaleFactorH = roomRect.height / ProCamera2D.ScreenSizeInWorldCoordinates.y;
-
-			if (scaleFactorW < scaleFactorH)
-				return roomRect.width / ProCamera2D.GameCamera.aspect / 2f;
-			else
-				return roomRect.height / 2f;
-		}
-
 #if UNITY_EDITOR
 		override protected void DrawGizmos()
 		{
@@ -495,8 +526,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			{
 				// Room border
 				var rect = Rooms[i].Dimensions;
-				rect.x -= rect.width / 2f;
-				rect.y -= rect.height / 2f;
+				rect.x -= rect.width / 2f - (UseRelativePosition ? transform.position.x : 0);
+				rect.y -= rect.height / 2f - (UseRelativePosition ? transform.position.y : 0);
 				Vector3[] rectangleCorners =
 					{
 						VectorHVD(rect.position.x, rect.position.y, 0),                              // Bottom Left

@@ -12,7 +12,7 @@ namespace Prime31.ZestKit
 		/// </summary>
 		public static List<Vector3> nodeListFromAsset( string pathAssetName )
 		{
-			
+
 			#if !UNITY_5_4_OR_NEWER
 			if( Application.platform == RuntimePlatform.OSXWebPlayer || Application.platform == RuntimePlatform.WindowsWebPlayer )
 			{
@@ -28,12 +28,7 @@ namespace Prime31.ZestKit
 
 			if( Application.platform == RuntimePlatform.Android )
 			{
-				path = Path.Combine( "jar:file://" + Application.dataPath + "!/assets/", pathAssetName );
-
-				WWW loadAsset = new WWW( path );
-				while( !loadAsset.isDone ) { } // maybe make a safety check here
-
-				return bytesToVector3List( loadAsset.bytes );
+				return new List<Vector3>();
 			}
 			else
 			{

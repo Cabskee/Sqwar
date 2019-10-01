@@ -12,8 +12,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         void OnEnable()
         {
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
             _script = MonoScript.FromMonoBehaviour((ProCamera2DTriggerInfluence)target);
         }
 
@@ -72,6 +70,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("TriggerTarget"), tooltip);
             }
             EditorGUILayout.EndHorizontal();
+
+			// Mode
+			_tooltip = new GUIContent("Influence Mode", "Choose what axis the influence affects");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("Mode"), _tooltip);
 
             serializedObject.ApplyModifiedProperties();
         }

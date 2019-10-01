@@ -57,6 +57,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		float _initialCameraSize;
 
 		ProCamera2DNumericBoundaries _numericBoundaries;
+		bool _numericBoundariesPreviousState;
 
 		ProCamera2DLetterbox _letterbox;
 
@@ -87,6 +88,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		protected override void OnDestroy()
 		{
 			base.OnDestroy();
+			
+			if(ProCamera2D == null) return;
 
 			ProCamera2D.RemovePositionOverrider(this);
 			ProCamera2D.RemoveSizeOverrider(this);
@@ -148,11 +151,19 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			_initialCameraSize = ProCamera2D.ScreenSizeInWorldCoordinates.y * .5f;
 
-			if (UseNumericBoundaries && _numericBoundaries == null)
+			if (_numericBoundaries == null)
 				_numericBoundaries = ProCamera2D.GetComponentInChildren<ProCamera2DNumericBoundaries>();
 
 			if (_numericBoundaries == null)
+				_numericBoundaries = FindObjectOfType<ProCamera2DNumericBoundaries>();
+
+			if (_numericBoundaries == null)
 				UseNumericBoundaries = false;
+			else
+			{
+				_numericBoundariesPreviousState = _numericBoundaries.enabled;
+				_numericBoundaries.enabled = false;
+			}
 
 			_isPlaying = true;
 			if (_endCinematicRoutine != null)
@@ -383,20 +394,23 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				{
 					t += ProCamera2D.DeltaTime / EndDuration;
 
+					var originalPosH = Vector3H(_originalPos);
+					var originalPosV = Vector3V(_originalPos);
+
 					float newPosH = 0f;
 					float newPosV = 0f;
 					if (ProCamera2D.CameraTargets.Count > 0)
 					{
-						newPosH = Utils.EaseFromTo(initialPosH, Vector3H(_originalPos), t, EndEaseType);
-						newPosV = Utils.EaseFromTo(initialPosV, Vector3V(_originalPos), t, EndEaseType);
+						newPosH = Utils.EaseFromTo(initialPosH, originalPosH, t, EndEaseType);
+						newPosV = Utils.EaseFromTo(initialPosV, originalPosV, t, EndEaseType);
 					}
 					else
 					{
 						newPosH = Utils.EaseFromTo(initialPosH, Vector3H(_startPos), t, EndEaseType);
 						newPosV = Utils.EaseFromTo(initialPosV, Vector3V(_startPos), t, EndEaseType);
 					}
-
-					if (UseNumericBoundaries)
+					
+					if (_numericBoundariesPreviousState)
 						LimitToNumericBoundaries(ref newPosH, ref newPosV);
 
 					_newPos = VectorHVD(newPosH, newPosV, 0);
@@ -407,10 +421,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 				yield return ProCamera2D.GetYield();
 			}
 
+			_isPlaying = false;
+
+			if (_numericBoundaries != null)
+				_numericBoundaries.enabled = _numericBoundariesPreviousState;
+
 			if (OnCinematicFinished != null)
 				OnCinematicFinished.Invoke();
-
-			_isPlaying = false;
 
 			// Ugly hack... but no way around it at the moment
 			if (ProCamera2D.CameraTargets.Count == 0)

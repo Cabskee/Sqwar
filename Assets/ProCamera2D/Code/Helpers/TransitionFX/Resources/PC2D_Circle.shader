@@ -47,7 +47,7 @@ Shader "Hidden/ProCamera2D/TransitionsFX/Circle"
             {
                 fixed4 colour = _BackgroundColor;
                 float aspectRatio = _ScreenParams.y / _ScreenParams.x;
-                if (sqrt(pow(i.uv.x - 0.5, 2) + pow((i.uv.y - 0.5) * aspectRatio, 2) < 0.5 - (_Step / 2)))
+                if (sqrt((float)(pow(i.uv.x - 0.5, 2) + pow((i.uv.y - 0.5) * aspectRatio, 2) < 0.5 - (_Step / 2))))
                     colour = tex2D(_MainTex, i.uv);
                 
                 return colour;

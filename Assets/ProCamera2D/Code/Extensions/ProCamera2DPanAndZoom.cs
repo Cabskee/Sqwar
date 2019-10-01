@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.EventSystems;
+using System;
 
 namespace Com.LuisPedroFonseca.ProCamera2D
 {
@@ -15,8 +16,17 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			Right = 1,
 			Middle = 2
 		}
-		
+
 		public static string ExtensionName = "Pan And Zoom";
+
+		// Events
+		public Action OnPanStarted;
+		public Action OnPanFinished;
+		
+		// Input
+		public bool AutomaticInputDetection = true;
+		public bool UseMouseInput;
+		public bool UseTouchInput;
 
 		public bool DisableOverUGUI = true;
 
@@ -33,6 +43,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		public float MaxZoomOutAmount = 2f;
 
 		public bool ZoomToInputCenter = true;
+
+		[HideInInspector]
+		public bool IsZooming;
 
 		float _zoomAmount;
 
@@ -77,10 +90,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		[Range(0, .99f)]
 		public float RightPanEdge = .9f;
 
-		public MouseButton PanMouseButton; 
+		public MouseButton PanMouseButton;
 
 		[HideInInspector]
 		public bool ResetPrevPanPoint;
+
+		[HideInInspector]
+		public bool IsPanning;
 
 		Vector2 _panDelta;
 
@@ -99,6 +115,12 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			base.Awake();
 
+			if (AutomaticInputDetection)
+			{
+				UseMouseInput = !Input.touchSupported;
+				UseTouchInput = Input.touchSupported;
+			}
+
 			UpdateCurrentFollowSmoothness();
 
 			_eventSystem = EventSystem.current;
@@ -112,18 +134,24 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			base.OnDestroy();
 
-			ProCamera2D.RemovePreMover(this);
+			if(ProCamera2D)
+				ProCamera2D.RemovePreMover(this);
 		}
 
-		void Start()
+		IEnumerator Start()
 		{
 			_initialCamSize = ProCamera2D.ScreenSizeInWorldCoordinates.y * .5f;
+
+			yield return null;
+			
+			if(gameObject.scene.buildIndex == -1)
+				DontDestroyOnLoad(_panTarget.gameObject);
 		}
 
 		protected override void OnEnable()
 		{
 			base.OnEnable();
-			
+
 			_initialCamSize = ProCamera2D.ScreenSizeInWorldCoordinates.y * .5f;
 
 			ProCamera2D.AddCameraTarget(_panTarget);
@@ -147,33 +175,44 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		public void PreMove(float deltaTime)
 		{
 			// Detect if the user is pointing over an UI element
-#if (UNITY_IOS || UNITY_ANDROID || UNITY_WINRT) && !UNITY_EDITOR
-			_skip = DisableOverUGUI && _eventSystem;
-			if(_skip)
+			if (UseTouchInput)
 			{
-				_skip = false;
-				for (int i = 0; i < Input.touchCount; i++)
+				_skip = DisableOverUGUI && _eventSystem;
+				if (_skip)
 				{
-					if(_eventSystem.IsPointerOverGameObject(Input.GetTouch(i).fingerId))
+					_skip = false;
+					for (int i = 0; i < Input.touchCount; i++)
 					{
-						_skip = true;
-						break;
+						if (_eventSystem.IsPointerOverGameObject(Input.GetTouch(i).fingerId))
+						{
+							_skip = true;
+							break;
+						}
 					}
 				}
+				if (_skip)
+				{
+					_prevTouchPosition = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+					CancelZoom();
+				}
 			}
-			if (_skip)
+			
+			if (UseMouseInput)
 			{
-				_prevTouchPosition = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-				CancelZoom();
+				_skip = DisableOverUGUI && _eventSystem && _eventSystem.IsPointerOverGameObject();
+				if (_skip)
+				{
+					_prevMousePosition = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+					CancelZoom();
+				}
 			}
-#elif UNITY_STANDALONE || UNITY_WEBGL || UNITY_WEBPLAYER || UNITY_EDITOR
-			_skip = DisableOverUGUI && _eventSystem && _eventSystem.IsPointerOverGameObject();
-			if (_skip)
-			{
-				_prevMousePosition = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-				CancelZoom();
-			}
-#endif
+
+			IsZooming = false;
+
+			if (IsPanning && OnPanFinished != null)
+				OnPanFinished();
+
+			IsPanning = false;
 
 			if (enabled && AllowPan && !_skip)
 				Pan(deltaTime);
@@ -192,202 +231,212 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		{
 			_panDelta = Vector2.zero;
 
-#if UNITY_IOS || UNITY_ANDROID || UNITY_WINRT
-			// Time since zoom
-			if (Time.time - _touchZoomTime < .1f)
+			if (UseTouchInput)
 			{
-				if (Input.touchCount > 0)
-					_prevTouchPosition = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-
-				return;
-			}
-
-			// Touch delta
-			if (AllowZoom && Input.touchCount == 1 || 
-			    !AllowZoom && Input.touchCount > 0)
-			{
-				var touch = Input.GetTouch(Input.touchCount - 1);
-
-				// Reset camera inertia and previous touch position on pan start
-				if (touch.phase == TouchPhase.Began)
+				// Time since zoom
+				if (Time.time - _touchZoomTime < .1f)
 				{
-					_prevTouchId = touch.fingerId;
-					_prevTouchPosition = new Vector3(touch.position.x, touch.position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-					CenterPanTargetOnCamera(StopSpeedOnDragStart);
-				}
-				
-				// Ignore if using different finger
-				if(touch.fingerId != _prevTouchId)
+					if (Input.touchCount > 0)
+						_prevTouchPosition = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+
 					return;
+				}
 
-				var touchPos = new Vector3(touch.position.x, touch.position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-				var normalizedTouchPos = new Vector2(touch.position.x / ProCamera2D.GameCamera.pixelWidth, touch.position.y / ProCamera2D.GameCamera.pixelHeight);
-
-				if (ProCamera2D.GameCamera.pixelRect.Contains(touchPos) && InsideDraggableArea(normalizedTouchPos))
+				// Touch delta
+				if (AllowZoom && Input.touchCount == 1 ||
+					!AllowZoom && Input.touchCount > 0)
 				{
-					var prevTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(_prevTouchPosition);
+					var touch = Input.GetTouch(Input.touchCount - 1);
 
-					if (ResetPrevPanPoint)
+					// Reset camera inertia and previous touch position on pan start
+					if (touch.phase == TouchPhase.Began)
 					{
-						prevTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(touchPos);
-						ResetPrevPanPoint = false;
+						_prevTouchId = touch.fingerId;
+						_prevTouchPosition = new Vector3(touch.position.x, touch.position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+						CenterPanTargetOnCamera(StopSpeedOnDragStart);
 					}
 
-					var currentTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(touchPos);
-					var panDelta = prevTouchPositionWorldCoord - currentTouchPositionWorldCoord;
-					_panDelta = new Vector2(Vector3H(panDelta), Vector3V(panDelta));
-				}
+					// Ignore if using different finger or touch not moving
+					if (touch.fingerId != _prevTouchId || touch.phase != TouchPhase.Moved)
+						return;
 
-				_prevTouchPosition = touchPos;
+					var touchPos = new Vector3(touch.position.x, touch.position.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+					var normalizedTouchPos = new Vector2(touch.position.x / ProCamera2D.GameCamera.pixelWidth, touch.position.y / ProCamera2D.GameCamera.pixelHeight);
+
+					if (ProCamera2D.GameCamera.pixelRect.Contains(touchPos) && InsideDraggableArea(normalizedTouchPos))
+					{
+						var prevTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(_prevTouchPosition);
+
+						if (ResetPrevPanPoint)
+						{
+							prevTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(touchPos);
+							ResetPrevPanPoint = false;
+						}
+
+						var currentTouchPositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(touchPos);
+						var panDelta = prevTouchPositionWorldCoord - currentTouchPositionWorldCoord;
+						_panDelta = new Vector2(Vector3H(panDelta), Vector3V(panDelta));
+					}
+
+					_prevTouchPosition = touchPos;
+				}
 			}
-#endif
 
 			var panSpeed = DragPanSpeedMultiplier;
 
-#if UNITY_STANDALONE || UNITY_WEBGL || UNITY_WEBPLAYER || UNITY_EDITOR
-			// Reset camera inertia on pan start
-			if (UsePanByDrag && Input.GetMouseButtonDown((int)PanMouseButton))
+			if (UseMouseInput)
 			{
-				CenterPanTargetOnCamera(StopSpeedOnDragStart);
-			}
-
-			// Mouse drag delta
-			var mousePos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-			if (UsePanByDrag && Input.GetMouseButton((int)PanMouseButton))
-			{
-				var normalizedMousePos = new Vector2(Input.mousePosition.x / ProCamera2D.GameCamera.pixelWidth, Input.mousePosition.y / ProCamera2D.GameCamera.pixelHeight);
-				if (ProCamera2D.GameCamera.pixelRect.Contains(mousePos) && InsideDraggableArea(normalizedMousePos))
+				// Reset camera inertia on pan start
+				if (UsePanByDrag && Input.GetMouseButtonDown((int)PanMouseButton))
 				{
-					var prevMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(_prevMousePosition);
-
-					if (ResetPrevPanPoint)
-					{
-						prevMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(mousePos);
-						ResetPrevPanPoint = false;
-					}
-
-					var currentMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(mousePos);
-					var panDelta = prevMousePositionWorldCoord - currentMousePositionWorldCoord;
-					_panDelta = new Vector2(Vector3H(panDelta), Vector3V(panDelta));
+					CenterPanTargetOnCamera(StopSpeedOnDragStart);
 				}
-			}
-			// Move to edges delta
-			else if (UsePanByMoveToEdges && !Input.GetMouseButton((int)PanMouseButton))
-			{
-				var normalizedMousePosX = (-Screen.width * .5f + Input.mousePosition.x) / Screen.width;
-				var normalizedMousePosY = (-Screen.height * .5f + Input.mousePosition.y) / Screen.height;
 
-				if (normalizedMousePosX < 0)
-					normalizedMousePosX = normalizedMousePosX.Remap(-.5f, -LeftPanEdge * .5f, -.5f, 0f);
-				else if (normalizedMousePosX > 0)
-					normalizedMousePosX = normalizedMousePosX.Remap(RightPanEdge * .5f, .5f, 0f, .5f);
+				// Mouse drag delta
+				var mousePos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+				if (UsePanByDrag && Input.GetMouseButton((int)PanMouseButton))
+				{
+					var normalizedMousePos = new Vector2(Input.mousePosition.x / ProCamera2D.GameCamera.pixelWidth, Input.mousePosition.y / ProCamera2D.GameCamera.pixelHeight);
+					if (ProCamera2D.GameCamera.pixelRect.Contains(mousePos) && InsideDraggableArea(normalizedMousePos))
+					{
+						var prevMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(_prevMousePosition);
 
-				if (normalizedMousePosY < 0)
-					normalizedMousePosY = normalizedMousePosY.Remap(-.5f, -BottomPanEdge * .5f, -.5f, 0f);
-				else if (normalizedMousePosY > 0)
-					normalizedMousePosY = normalizedMousePosY.Remap(TopPanEdge * .5f, .5f, 0f, .5f);
+						if (ResetPrevPanPoint)
+						{
+							prevMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(mousePos);
+							ResetPrevPanPoint = false;
+						}
 
-				_panDelta = new Vector2(normalizedMousePosX, normalizedMousePosY) * deltaTime;
+						var currentMousePositionWorldCoord = ProCamera2D.GameCamera.ScreenToWorldPoint(mousePos);
+						var panDelta = prevMousePositionWorldCoord - currentMousePositionWorldCoord;
+						_panDelta = new Vector2(Vector3H(panDelta), Vector3V(panDelta));
+					}
+				}
+				// Move to edges delta
+				else if (UsePanByMoveToEdges && !Input.GetMouseButton((int)PanMouseButton))
+				{
+					var normalizedMousePosX = (-Screen.width * .5f + Input.mousePosition.x) / Screen.width;
+					var normalizedMousePosY = (-Screen.height * .5f + Input.mousePosition.y) / Screen.height;
 
-				if (_panDelta != Vector2.zero)
-					panSpeed = EdgesPanSpeed;
-			}
+					if (normalizedMousePosX < 0)
+						normalizedMousePosX = normalizedMousePosX.Remap(-.5f, -LeftPanEdge * .5f, -.5f, 0f);
+					else if (normalizedMousePosX > 0)
+						normalizedMousePosX = normalizedMousePosX.Remap(RightPanEdge * .5f, .5f, 0f, .5f);
 
-			// Prevent unintentional pans when outside of the GameView on the editor
+					if (normalizedMousePosY < 0)
+						normalizedMousePosY = normalizedMousePosY.Remap(-.5f, -BottomPanEdge * .5f, -.5f, 0f);
+					else if (normalizedMousePosY > 0)
+						normalizedMousePosY = normalizedMousePosY.Remap(TopPanEdge * .5f, .5f, 0f, .5f);
+
+					_panDelta = new Vector2(normalizedMousePosX, normalizedMousePosY) * deltaTime;
+
+					if (_panDelta != Vector2.zero)
+						panSpeed = EdgesPanSpeed;
+				}
+
+				// Prevent unintentional pans when outside of the GameView on the editor
 #if UNITY_EDITOR
-			Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
-			if (screenRect.Contains(Input.mousePosition) == false ||
-				screenRect.Contains(_prevMousePosition) == false)
-			{
-				_panDelta = Vector2.zero;
+				Rect screenRect = new Rect(0, 0, Screen.width, Screen.height);
+				if (screenRect.Contains(Input.mousePosition) == false ||
+					screenRect.Contains(_prevMousePosition) == false)
+				{
+					_panDelta = Vector2.zero;
+				}
+#endif
+				_prevMousePosition = mousePos;
 			}
-#endif
-
-			_prevMousePosition = mousePos;
-#endif
 
 			// Move
 			if (_panDelta != Vector2.zero)
 			{
 				var delta = VectorHV(_panDelta.x * panSpeed.x, _panDelta.y * panSpeed.y);
 				_panTarget.Translate(delta);
+
+				if (!IsPanning && OnPanStarted != null)
+					OnPanStarted();
+
+				IsPanning = true;
 			}
 
 			// Check if target is outside of bounds
 			if ((ProCamera2D.IsCameraPositionLeftBounded && Vector3H(_panTarget.position) < Vector3H(ProCamera2D.LocalPosition)) ||
 				(ProCamera2D.IsCameraPositionRightBounded && Vector3H(_panTarget.position) > Vector3H(ProCamera2D.LocalPosition)))
-				_panTarget.position = VectorHVD(Vector3H(ProCamera2D.LocalPosition), Vector3V(_panTarget.position), Vector3D(_panTarget.position));
+				_panTarget.position = VectorHVD(
+					Vector3H(ProCamera2D.LocalPosition) - ProCamera2D.GetOffsetX() * 0.9999f, // The multiplier avoids floating-point comparison errors
+					Vector3V(_panTarget.position),
+					Vector3D(_panTarget.position));
+				
 
 			if ((ProCamera2D.IsCameraPositionBottomBounded && Vector3V(_panTarget.position) < Vector3V(ProCamera2D.LocalPosition)) ||
 				(ProCamera2D.IsCameraPositionTopBounded && Vector3V(_panTarget.position) > Vector3V(ProCamera2D.LocalPosition)))
-				_panTarget.position = VectorHVD(Vector3H(_panTarget.position), Vector3V(ProCamera2D.LocalPosition), Vector3D(_panTarget.position));
+				_panTarget.position = VectorHVD(
+					Vector3H(_panTarget.position), 
+					Vector3V(ProCamera2D.LocalPosition) - ProCamera2D.GetOffsetY() * 0.9999f, // The multiplier avoids floating-point comparison errors
+					Vector3D(_panTarget.position));
 		}
 
 		void Zoom(float deltaTime)
 		{
 			var zoomInput = 0f;
 
-#if UNITY_IOS || UNITY_ANDROID || UNITY_WINRT
-			if (Input.touchCount == 2)
+			if (UseTouchInput)
 			{
-				var touchZero = Input.GetTouch(0);
-				var touchOne = Input.GetTouch(1);
-
-				var touchZeroPrevPos = touchZero.position - new Vector2(touchZero.deltaPosition.x / Screen.width, touchZero.deltaPosition.y / Screen.height);
-				var touchOnePrevPos = touchOne.position - new Vector2(touchOne.deltaPosition.x / Screen.width, touchOne.deltaPosition.y / Screen.height);
-
-				var prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
-				var touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
-
-				// Zoom input
-				zoomInput = prevTouchDeltaMag - touchDeltaMag;
-
-				// Zoom point
-				var midTouch = Vector2.Lerp(touchZero.position, touchOne.position, .5f);
-				_zoomPoint = new Vector3(midTouch.x, midTouch.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-
-				// Smoothness to 0
-				if (!_zoomStarted)
+				if (Input.touchCount == 2)
 				{
-					_zoomStarted = true;
-					_panTarget.position = ProCamera2D.LocalPosition - ProCamera2D.InfluencesSum;
-					UpdateCurrentFollowSmoothness();
-					RemoveFollowSmoothness();
-				}
+					var touchZero = Input.GetTouch(0);
+					var touchOne = Input.GetTouch(1);
 
-				// Save time
-				_touchZoomTime = Time.time;
-			}
-			else
-			{
-				// Reset smoothness
-				if (_zoomStarted && Mathf.Abs(_zoomAmount) < .001f)
+					var touchZeroPrevPos = touchZero.position - new Vector2(touchZero.deltaPosition.x / Screen.width, touchZero.deltaPosition.y / Screen.height);
+					var touchOnePrevPos = touchOne.position - new Vector2(touchOne.deltaPosition.x / Screen.width, touchOne.deltaPosition.y / Screen.height);
+
+					var prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
+					var touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
+
+					// Zoom input
+					zoomInput = prevTouchDeltaMag - touchDeltaMag;
+
+					// Zoom point
+					var midTouch = Vector2.Lerp(touchZero.position, touchOne.position, .5f);
+					_zoomPoint = new Vector3(midTouch.x, midTouch.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+
+					// Smoothness to 0
+					if (!_zoomStarted)
+					{
+						_zoomStarted = true;
+						_panTarget.position = ProCamera2D.LocalPosition - ProCamera2D.InfluencesSum;
+						UpdateCurrentFollowSmoothness();
+						RemoveFollowSmoothness();
+					}
+
+					// Save time
+					_touchZoomTime = Time.time;
+				}
+				else
 				{
-					RestoreFollowSmoothness();
-					_zoomStarted = false;
+					// Reset smoothness
+					if (_zoomStarted && Mathf.Abs(_zoomAmount) < .001f)
+					{
+						RestoreFollowSmoothness();
+						_zoomStarted = false;
+					}
 				}
 			}
-#endif
-
-#if UNITY_STANDALONE || UNITY_WEBGL || UNITY_WEBPLAYER || UNITY_EDITOR
-			// Zoom input
-			zoomInput = Input.GetAxis("Mouse ScrollWheel");
-
-			// Zoom point
-			_zoomPoint = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
-#endif
 			
+			if(UseMouseInput)
+			{
+				// Zoom input
+				zoomInput = Input.GetAxis("Mouse ScrollWheel");
+				
+				// Zoom point
+				_zoomPoint = new Vector3(Input.mousePosition.x, Input.mousePosition.y, Mathf.Abs(Vector3D(ProCamera2D.LocalPosition)));
+			}
+
 			// Stop zoom if zoomPoint not on this camera
-			if(!ProCamera2D.GameCamera.pixelRect.Contains(_zoomPoint))
+			if (!ProCamera2D.GameCamera.pixelRect.Contains(_zoomPoint))
 				return;
 
 			// Different zoom speed according to the platform
-			var zoomSpeed = 0f;
-#if !UNITY_EDITOR && (UNITY_IOS || UNITY_ANDROID || UNITY_WINRT)
-            zoomSpeed = PinchZoomSpeed * 10f;
-#elif UNITY_STANDALONE || UNITY_WEBGL || UNITY_WEBPLAYER || UNITY_EDITOR
-			zoomSpeed = MouseZoomSpeed;
-#endif
+			var zoomSpeed = UseTouchInput ? PinchZoomSpeed * 10f : MouseZoomSpeed;
 
 			// Cancel zoom if max/min reached
 			if ((_onMaxZoom && zoomInput * zoomSpeed < 0) || (_onMinZoom && zoomInput * zoomSpeed > 0))
@@ -399,27 +448,28 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			// Zoom amount
 			_zoomAmount = Mathf.SmoothDamp(_prevZoomAmount, zoomInput * zoomSpeed * deltaTime, ref _zoomVelocity, ZoomSmoothness, float.MaxValue, deltaTime);
 
-#if UNITY_STANDALONE || UNITY_WEBGL || UNITY_WEBPLAYER || UNITY_EDITOR
-			// Reset smoothness once zoom stops
-			if (Mathf.Abs(_zoomAmount) <= .0001f)
+			if (UseMouseInput)
 			{
-				if (_zoomStarted)
-					RestoreFollowSmoothness();
+				// Reset smoothness once zoom stops
+				if (Mathf.Abs(_zoomAmount) <= .0001f)
+				{
+					if (_zoomStarted)
+						RestoreFollowSmoothness();
 
-				_zoomStarted = false;
-				_prevZoomAmount = 0;
-				return;
-			}
+					_zoomStarted = false;
+					_prevZoomAmount = 0;
+					return;
+				}
 
-			// Smoothness to 0
-			if (!_zoomStarted)
-			{
-				_zoomStarted = true;
-				_panTarget.position = ProCamera2D.LocalPosition - ProCamera2D.InfluencesSum;
-				UpdateCurrentFollowSmoothness();
-				RemoveFollowSmoothness();
+				// Smoothness to 0
+				if (!_zoomStarted)
+				{
+					_zoomStarted = true;
+					_panTarget.position = ProCamera2D.LocalPosition - ProCamera2D.InfluencesSum;
+					UpdateCurrentFollowSmoothness();
+					RemoveFollowSmoothness();
+				}
 			}
-#endif
 
 			// Clamp zoom amount
 			var targetSize = (ProCamera2D.ScreenSizeInWorldCoordinates.y / 2) + _zoomAmount;
@@ -450,6 +500,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 			// Zoom
 			ProCamera2D.Zoom(_zoomAmount);
+
+			IsZooming = true;
 		}
 
 		/// <summary>
@@ -468,7 +520,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		public void CenterPanTargetOnCamera(float interpolant = 1f)
 		{
 			if (_panTarget != null)
-				_panTarget.position = Vector3.Lerp(_panTarget.position, VectorHV(Vector3H(ProCamera2D.LocalPosition), Vector3V(ProCamera2D.LocalPosition)), interpolant);
+				_panTarget.position = Vector3.Lerp(
+					_panTarget.position, 
+					VectorHV(Vector3H(ProCamera2D.LocalPosition) - ProCamera2D.GetOffsetX(), Vector3V(ProCamera2D.LocalPosition) - ProCamera2D.GetOffsetY()), 
+					interpolant);
 		}
 
 		void CancelZoom()

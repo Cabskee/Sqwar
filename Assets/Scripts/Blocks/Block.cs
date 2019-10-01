@@ -1,32 +1,32 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
 
-public class Block: NetworkBehaviour {
+public class Block: MonoBehaviour {
 	protected CharacterController2D blockController;
 
-	[SyncVar] public Constant.FacingDirection shotDirection;
-	[SyncVar] public float speed;
-	[SyncVar] public Color color;
+	public Constant.FacingDirection shotDirection;
+	public float speed;
+	public Color color;
+
+	public int ownerID;
 
 	bool isDestroying = false;
 
-	uint ownerNetworkId;
-
 	void Awake() {
 		blockController = GetComponent<CharacterController2D>();
+
+		GetComponent<SpriteRenderer>().color = color;
 	}
 
-	[ServerCallback]
-	void Start() {
+	void OnEnable() {
 		blockController.onControllerCollidedEvent += boundaryTriggerEvent;
 	}
 
-	public override void OnStartClient() {
-		GetComponent<SpriteRenderer>().color = color;
+	void OnDisable() {
+		blockController.onControllerCollidedEvent -= boundaryTriggerEvent;
 	}
 
 	protected void boundaryTriggerEvent(RaycastHit2D ray) {
@@ -34,41 +34,21 @@ public class Block: NetworkBehaviour {
 			destroyBlock();
 	}
 
-	[ServerCallback]
-	public void collidedWithBlock() {
-		destroyBlock();
-	}
-
-	protected bool isBlockDestroying() {
-		return isDestroying;
-	}
-
-	[ServerCallback]
-	protected void destroyBlock() {
-		if (!isDestroying) {
+	protected bool isBlockDestroying() => isDestroying;
+	public void destroyBlock() {
+		if (!isBlockDestroying()) {
 			isDestroying = true;
-			NetworkServer.Destroy(gameObject);
+			Destroy(gameObject);
 		}
 	}
 
-	[ServerCallback]
-	protected void sendPosition() {
-		RpcRecievePosition(transform.position);
-	}
-
-	[ClientRpc]
-	[ClientCallback]
-	void RpcRecievePosition(Vector3 position) {
-		transform.position = position;
-	}
-
 	/// <summary>
-	/// Initializes a white block server-wide that falls downwards.
+	/// Initializes a white block that falls downwards.
 	/// </summary>
 	/// <param name="numberSpawned">ID of the block.</param>
 	/// <param name="speed">Speed of the block.</param>
 	public void initialize(int numberSpawned, float speed) {
-		initialize(numberSpawned, speed, GetComponent<NetworkIdentity>().netId.Value, Constant.FacingDirection.Down, Color.white);
+		initialize(numberSpawned, speed, 0, Constant.FacingDirection.Down, Color.white);
 	}
 
 	/// <summary>
@@ -78,18 +58,18 @@ public class Block: NetworkBehaviour {
 	/// <param name="speed">Speed of the block.</param>
 	/// <param name="facingDirection">Direction the block will travel.</param>
 	public void initialize(int numberSpawned, float speed, Constant.FacingDirection facingDirection) {
-		initialize(numberSpawned, speed, GetComponent<NetworkIdentity>().netId.Value, facingDirection, Color.white);
+		initialize(numberSpawned, speed, 0, facingDirection, Color.white);
 	}
 
 	/// <summary>
-	/// Initializes a colored block that travels a certain direction.
+	/// Initializes a colored block owned by a specific playerID that travels a certain direction.
 	/// </summary>
 	/// <param name="numberSpawned">ID of the block.</param>
 	/// <param name="speed">Speed of the block.</param>
-	/// <param name="playerControllerId">ID of the player who spawned the block.</param>
+	/// <param name="playerID">ID of the player who spawned the block.</param>
 	/// <param name="facingDirection">Direction the block will travel.</param>
 	/// <param name="blockColor">Color of the block.</param>
-	public void initialize(int numberSpawned, float speed, uint playerOwnerNetworkId, Constant.FacingDirection facingDirection, Color blockColor) {
+	public void initialize(int numberSpawned, float speed, int playerID, Constant.FacingDirection facingDirection, Color blockColor) {
 		// Set GameObject name for sanity reasons
 		gameObject.name = "Block "+numberSpawned;
 
@@ -100,7 +80,7 @@ public class Block: NetworkBehaviour {
 		this.shotDirection = facingDirection;
 
 		// Set the player who controls this block
-		this.ownerNetworkId = playerOwnerNetworkId;
+		this.ownerID = playerID;
 
 		// Set block color based on Player
 		this.color = blockColor;
@@ -111,10 +91,8 @@ public class Block: NetworkBehaviour {
 	/// Checks if player of playerId is the owner of this block.
 	/// </summary>
 	/// <returns><c>true</c>, if playerId is the owner of this block, <c>false</c> otherwise.</returns>
-	/// <param name="playerId">Player NetworkIdentity Controller ID.</param>
-	protected bool isPlayerOwnerOfBlock(uint playerNetworkId) {
-		return playerNetworkId == ownerNetworkId;
-	}
+	/// <param name="playerId">Player ID.</param>
+	protected bool isPlayerOwnerOfBlock(int playerID) => playerID == ownerID;
 
 	protected bool didCollideWithALayer(RaycastHit2D ray, string[] layerNames) {
 		foreach (string layerName in layerNames) {

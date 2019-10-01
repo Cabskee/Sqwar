@@ -8,6 +8,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
     #endif
     public class ProCamera2DTriggerInfluence : BaseTrigger
     {
+		public enum TriggerInfluenceMode
+		{
+			BothAxis,
+			HorizontalAxis,
+			VerticalAxis
+		}
+
         public static string TriggerName = "Influence Trigger";
 
         public Transform FocusPoint;
@@ -16,6 +23,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         [RangeAttribute(0, 1)]
         public float ExclusiveInfluencePercentage = .25f;
+
+		public TriggerInfluenceMode Mode;
 
         Vector2 _influence;
         Vector2 _velocity;
@@ -60,17 +69,28 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 var vectorFromPointToFocus = new Vector2(Vector3H(ProCamera2D.TargetsMidPoint) + Vector3H(ProCamera2D.TargetsMidPoint) - Vector3H(ProCamera2D.PreviousTargetsMidPoint), Vector3V(ProCamera2D.TargetsMidPoint) + Vector3V(ProCamera2D.TargetsMidPoint) - Vector3V(ProCamera2D.PreviousTargetsMidPoint)) - new Vector2(Vector3H(FocusPoint.position), Vector3V(FocusPoint.position));
                 if (distancePercentage == 0)
                 {
-                    ProCamera2D.ExclusiveTargetPosition = Vector3.SmoothDamp(_tempExclusivePoint, VectorHV(Vector3H(FocusPoint.position), Vector3V(FocusPoint.position)), ref _exclusivePointVelocity, InfluenceSmoothness);
+					var exclusiveTargetPosition = VectorHV(Vector3H(FocusPoint.position), Vector3V(FocusPoint.position));
+                    ProCamera2D.ExclusiveTargetPosition = Vector3.SmoothDamp(_tempExclusivePoint, exclusiveTargetPosition, ref _exclusivePointVelocity, InfluenceSmoothness);
                     _tempExclusivePoint = ProCamera2D.ExclusiveTargetPosition.Value;
                     _influence = -vectorFromPointToFocus * (1 - distancePercentage);
+
+					if (Mode == TriggerInfluenceMode.HorizontalAxis)
+						_influence.y = 0;
+					else if (Mode == TriggerInfluenceMode.VerticalAxis)
+						_influence.x = 0;
                     ProCamera2D.ApplyInfluence(_influence);
                 }
                 else
                 {
                     if (previousDistancePercentage == 0)
-                        _influence = new Vector2(Vector3H(ProCamera2D.CameraTargetPositionSmoothed), Vector3V(ProCamera2D.CameraTargetPositionSmoothed)) - new Vector2(Vector3H(ProCamera2D.TargetsMidPoint) + Vector3H(ProCamera2D.TargetsMidPoint) - Vector3H(ProCamera2D.PreviousTargetsMidPoint), Vector3V(ProCamera2D.TargetsMidPoint) + Vector3V(ProCamera2D.TargetsMidPoint) - Vector3V(ProCamera2D.PreviousTargetsMidPoint)) + new Vector2(Vector3H(ProCamera2D.ParentPosition), Vector3V(ProCamera2D.ParentPosition));
+                        _influence = new Vector2(ProCamera2D.CameraTargetPositionSmoothed.x, ProCamera2D.CameraTargetPositionSmoothed.y) - new Vector2(Vector3H(ProCamera2D.TargetsMidPoint) + Vector3H(ProCamera2D.TargetsMidPoint) - Vector3H(ProCamera2D.PreviousTargetsMidPoint), Vector3V(ProCamera2D.TargetsMidPoint) + Vector3V(ProCamera2D.TargetsMidPoint) - Vector3V(ProCamera2D.PreviousTargetsMidPoint)) + new Vector2(Vector3H(ProCamera2D.ParentPosition), Vector3V(ProCamera2D.ParentPosition));
 
                     _influence = Vector2.SmoothDamp(_influence, -vectorFromPointToFocus * (1 - distancePercentage), ref _velocity, InfluenceSmoothness, Mathf.Infinity, Time.deltaTime);
+
+					if (Mode == TriggerInfluenceMode.HorizontalAxis)
+						_influence.y = 0;
+					else if (Mode == TriggerInfluenceMode.VerticalAxis)
+						_influence.x = 0;
                     ProCamera2D.ApplyInfluence(_influence);
                     _tempExclusivePoint = VectorHV(Vector3H(ProCamera2D.CameraTargetPosition), Vector3V(ProCamera2D.CameraTargetPosition)) + VectorHV(Vector3H(ProCamera2D.ParentPosition), Vector3V(ProCamera2D.ParentPosition));
                 }

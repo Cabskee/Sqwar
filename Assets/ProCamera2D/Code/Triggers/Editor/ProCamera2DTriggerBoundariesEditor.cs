@@ -12,8 +12,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         void OnEnable()
         {
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
 			var proCamera2DTriggerBoundaries = (ProCamera2DTriggerBoundaries)target;
 
             if (proCamera2DTriggerBoundaries.NumericBoundaries == null && proCamera2DTriggerBoundaries.ProCamera2D != null)

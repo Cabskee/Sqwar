@@ -21,8 +21,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			if (target == null)
 				return;
 
-			ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
 			_proCamera2DParallax = (ProCamera2DParallax)target;
 
 			_proCamera2D = _proCamera2DParallax.ProCamera2D;
@@ -37,12 +35,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			{
 				rect.y += 2;
 				var element = _parallaxLayersList.serializedProperty.GetArrayElementAtIndex(index);
-
-#if UNITY_5
-				EditorGUI.PrefixLabel(new Rect(rect.x, rect.y, 65, 10), new GUIContent("Camera", "The parallax camera"), EditorStyles.boldLabel);
-#else
+				
 				EditorGUI.PrefixLabel(new Rect(rect.x, rect.y, 65, 10), new GUIContent("Camera", "The parallax camera"));
-#endif
 				EditorGUI.PropertyField(new Rect(
 						rect.x + 65,
 						rect.y,
@@ -52,25 +46,41 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 
 				// Speed slider
-#if UNITY_5
-				EditorGUI.PrefixLabel(new Rect(rect.x + 170, rect.y, 65, 10), new GUIContent("Speed", "The relative speed at which the camera should move in comparison to the main camera."), EditorStyles.boldLabel);
-#else
-				EditorGUI.PrefixLabel(new Rect(rect.x + 170, rect.y, 65, 10), new GUIContent("Speed", "The relative speed at which the camera should move in comparison to the main camera."));
-#endif
-				EditorGUI.PropertyField(new Rect(
-						rect.x + 210,
-						rect.y,
-						rect.width - 210,
-						EditorGUIUtility.singleLineHeight),
-					element.FindPropertyRelative("Speed"), GUIContent.none);
+				EditorGUI.LabelField(new Rect(rect.x + 170, rect.y, 65, 20), new GUIContent(_proCamera2DParallax.UseIndependentAxisSpeeds ? "SpeedX" : "Speed", "The relative speed at which the camera should move in comparison to the main camera."));
+				
+				if(_proCamera2DParallax.UseIndependentAxisSpeeds )
+					EditorGUI.LabelField(new Rect(rect.x + 170, rect.y + 15, 65, 20), new GUIContent("SpeedY", "The relative speed at which the camera should move in comparison to the main camera."));
+				
+				if (_proCamera2DParallax.UseIndependentAxisSpeeds)
+				{
+					EditorGUI.PropertyField(new Rect(
+							rect.x + 215,
+							rect.y,
+							rect.width - 215,
+							EditorGUIUtility.singleLineHeight),
+						element.FindPropertyRelative("SpeedX"), GUIContent.none);
+					EditorGUI.PropertyField(new Rect(
+							rect.x + 215,
+							rect.y + 15,
+							rect.width - 215,
+							EditorGUIUtility.singleLineHeight),
+						element.FindPropertyRelative("SpeedY"), GUIContent.none);
+				}
+				else
+				{
+					EditorGUI.PropertyField(new Rect(
+							rect.x + 210,
+							rect.y,
+							rect.width - 210,
+							EditorGUIUtility.singleLineHeight),
+						element.FindPropertyRelative("Speed"), GUIContent.none);
+				}
 
+				if (_proCamera2DParallax.UseIndependentAxisSpeeds)
+					rect.y += 10;
 
 				// Layer mask
-#if UNITY_5
-				EditorGUI.PrefixLabel(new Rect(rect.x, rect.y + 25, 65, 10), new GUIContent("Culling Mask", "Which layers should this camera render?"), EditorStyles.boldLabel);
-#else
                 EditorGUI.PrefixLabel(new Rect(rect.x, rect.y + 25, 65, 10), new GUIContent("Culling Mask", "Which layers should this camera render?"));
-#endif
 				EditorGUI.PropertyField(new Rect(
 						rect.x + 85,
 						rect.y + 25,
@@ -111,7 +121,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 					_proCamera2DParallax.ParallaxLayers[0].ParallaxCamera.clearFlags = CameraClearFlags.SolidColor;
 			};
 
-			_parallaxLayersList.elementHeight = 65;
+			_parallaxLayersList.elementHeight = 70;
 			_parallaxLayersList.headerHeight = 18;
 			_parallaxLayersList.draggable = true;
 		}
@@ -196,7 +206,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 					if (i > 0)
 						_proCamera2DParallax.ParallaxLayers[i].ParallaxCamera.clearFlags = CameraClearFlags.Depth;
 					else if (_proCamera2DParallax.ParallaxLayers[0].ParallaxCamera.clearFlags != CameraClearFlags.SolidColor &&
-							_proCamera2DParallax.ParallaxLayers[0].ParallaxCamera.clearFlags != CameraClearFlags.Skybox)
+							_proCamera2DParallax.ParallaxLayers[0].ParallaxCamera.clearFlags != CameraClearFlags.Skybox && 
+					         _proCamera2DParallax.AutomaticallyConfigureCameraClearFlags)
 						_proCamera2DParallax.ParallaxLayers[0].ParallaxCamera.clearFlags = CameraClearFlags.SolidColor;
 				}
 			}
@@ -264,6 +275,14 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 			// Parallax Zoom
 			_tooltip = new GUIContent("Parallax Zoom", "Should the parallax layers size be affected? On by default.");
 			EditorGUILayout.PropertyField(serializedObject.FindProperty("ParallaxZoom"), _tooltip);
+			
+			// Use independent axis speeds
+			_tooltip = new GUIContent("Use Independent Axis Speeds", "Enable if you want your parallax layers to move at different horizontal and vertical speeds. May cause inconsistent parallax results. Use only if you know what you're doing.");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("UseIndependentAxisSpeeds"), _tooltip);
+			
+			// Automatically configure camera clear flags
+			_tooltip = new GUIContent("Automatically Configure Clear Flags", "Disable only if you want to manually configure your camera clear flags.");
+			EditorGUILayout.PropertyField(serializedObject.FindProperty("AutomaticallyConfigureCameraClearFlags"), _tooltip);
 
 			// Back Depth Start
 			_tooltip = new GUIContent("Back Depth Start", "The depth at which the back cameras start");

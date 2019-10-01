@@ -45,10 +45,7 @@ TagManager:
   - name: Platform
     uniqueID: 489512679
     locked: 0
-  - name: Proxies
-    uniqueID: 1278734777
-    locked: 0
-  - name: Client
+  - name: Players
     uniqueID: 409932007
     locked: 0
   - name: Blocks

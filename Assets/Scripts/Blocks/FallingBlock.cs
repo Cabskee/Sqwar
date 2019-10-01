@@ -1,12 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 using Prime31;
 
 public class FallingBlock: Block {
-	[SyncVar] public bool hasLanded = false;
+	public bool hasLanded = false;
 
 	readonly string[] collisionLayers = new string[]{
 		Constant.LAYER_PLATFORM,
@@ -14,12 +13,14 @@ public class FallingBlock: Block {
 		Constant.LAYER_PLAYER
 	};
 
-	[ServerCallback]
-	void Start() {
+	void OnEnable() {
 		blockController.onControllerCollidedEvent += onFallingBlockCollision;
 	}
 
-	[ServerCallback]
+	void OnDisable() {
+		blockController.onControllerCollidedEvent -= onFallingBlockCollision;
+	}
+
 	void onFallingBlockCollision(RaycastHit2D ray) {
 		if (!hasLanded) {
 			boundaryTriggerEvent(ray);
@@ -30,13 +31,10 @@ public class FallingBlock: Block {
 				blockController.onControllerCollidedEvent -= onFallingBlockCollision;
 
 				Destroy(blockController.GetComponent<CharacterController2D>());
-
-				// Send the final position to all clients
-				sendPosition();
 			}
 		}
 	}
-	
+
 	void Update () {
 		if (!hasLanded && !blockController.isGrounded) {
 			// If the Falling Block has not landed yet, move it downwards

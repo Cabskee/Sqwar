@@ -19,8 +19,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (target == null)
                 return;
             
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
             _script = MonoScript.FromMonoBehaviour((ProCamera2DCinematics)target);
 
             // Cinematic targets list

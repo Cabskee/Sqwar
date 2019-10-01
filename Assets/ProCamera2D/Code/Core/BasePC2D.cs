@@ -11,12 +11,21 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             {
                 if (_pc2D != null) return _pc2D;
                 
-                if (Camera.main != null)
-                    _pc2D = Camera.main.GetComponent<ProCamera2D>();
+                _pc2D = GetComponent<ProCamera2D>();
                     
+                if (_pc2D == null && Camera.main != null)
+                    _pc2D = Camera.main.GetComponent<ProCamera2D>();
+                
                 if (_pc2D == null)
                     _pc2D = FindObjectOfType(typeof(ProCamera2D)) as ProCamera2D;
                 
+                #if UNITY_EDITOR
+                if (!Application.isPlaying && _pc2D != null && UnityEditor.SceneManagement.EditorSceneManager.preventCrossSceneReferences && _pc2D.gameObject.scene != gameObject.scene)
+                {
+                    Debug.LogWarning("ProCamera2D is in a different scene. Cross scene references are not supported during edit mode but everything will work correctly during play. Unfortunately the cross scene reference warnings are unavoidable at the moment.");
+                }
+                #endif
+
                 return _pc2D;
             }
 
@@ -85,7 +94,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         void ResetAxisFunctions()
         {
-            if (Vector3H != null || _pc2D == null)
+            if (Vector3H != null || ProCamera2D == null)
                 return;
 
             switch (_pc2D.Axis)

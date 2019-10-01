@@ -97,8 +97,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         public bool StartSceneOnEnterState = true;
 
-        public bool UseRealtime = true;
-
         Coroutine _transitionCoroutine;
         float _step;
 
@@ -272,18 +270,16 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             if (delay > 0)
             {
-                #if UNITY_5_4_OR_NEWER
-                if(UseRealtime)
+                if(ProCamera2D.IgnoreTimeScale)
                     yield return new WaitForSecondsRealtime(delay);
                 else
-                #endif
                     yield return new WaitForSeconds(delay);
             }
 
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += (UseRealtime ? Time.unscaledDeltaTime : ProCamera2D.DeltaTime) / duration;
+                t += ProCamera2D.DeltaTime / duration;
 
                 _step = Utils.EaseFromTo(startValue, endValue, t, easeType);
 

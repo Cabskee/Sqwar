@@ -186,6 +186,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         public override void OnInspectorGUI()
         {
+            EditorGUI.BeginChangeCheck();
+            
             var proCamera2D = (ProCamera2D)target;
 
             serializedObject.Update();
@@ -252,7 +254,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (EditorGUIUtility.isProSkin)
                 style.normal.textColor = Color.white;
             GUI.Box(drop_area, "\nDROP CAMERA TARGETS HERE", style);
-
+            
+            Undo.RecordObject(proCamera2D, "Added camera targets");
             switch (evt.type)
             {
                 case EventType.DragUpdated:
@@ -437,6 +440,13 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 GUI.enabled = true;
                 AddSpace();
             }
+            
+            
+            
+            // Ignore TimeScale
+            _tooltip = new GUIContent("Ignore TimeScale", "If enabled, the camera will not be affected by the Time.timeScale. It will use Time.unscaledDeltaTime instead.");
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("IgnoreTimeScale"), _tooltip);
+            AddSpace();
 
 
 
@@ -455,19 +465,18 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                 EditorGUILayout.LabelField(_extensions[i].ExtName);
                 if (_extensions[i].Component == null)
                 {
-                    GUI.color = Color.green;
+                    GUI.color = new Color(133f / 255f, 235f / 255f, 154f / 255f, 1f);
                     if (GUILayout.Button("Enable"))
                     {
                         _extensions[i].Component = proCamera2D.gameObject.AddComponent(_extensions[i].ExtType) as BasePC2D;
-                        _extensions[i].Component.ProCamera2D = proCamera2D;
                     }
                 }
                 else
                 {
-                    GUI.color = Color.red;
+                    GUI.color = new Color(236f / 255f, 72f / 255f, 105f / 255f, 1f);
                     if (GUILayout.Button("Disable"))
                     {
-                        if (EditorUtility.DisplayDialog("Warning!", "Are you sure you want to remove this plugin?", "Yes", "No"))
+                        if (EditorUtility.DisplayDialog("Warning!", "Are you sure you want to remove this extension?", "Yes", "No"))
                         {
                             DestroyImmediate(_extensions[i].Component);
                             EditorGUIUtility.ExitGUI();
@@ -500,7 +509,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                     var newGo = new GameObject(_triggers[i].TriggerType.Name);
                     newGo.transform.localScale = new Vector3(5, 5, 5);
                     var trigger = newGo.AddComponent(_triggers[i].TriggerType) as BasePC2D;
-                    trigger.ProCamera2D = proCamera2D;
                     _triggers[i].AllTriggers.Add(trigger);
                 }
 
@@ -526,6 +534,11 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 
             serializedObject.ApplyModifiedProperties();
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(proCamera2D);
+            }
         }
 
         void AddSpace()

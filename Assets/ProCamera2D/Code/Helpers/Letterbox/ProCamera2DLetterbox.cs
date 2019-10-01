@@ -32,11 +32,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         private void OnEnable()
         {
-            if (!SystemInfo.supportsImageEffects)
-            {
-                enabled = false;
-            }
-            
             _previousAmount = float.MaxValue;
             
             if(TopPropertyID == 0)
@@ -90,7 +85,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             var t = 0f;
             while (t <= 1.0f)
             {
-                t += Time.deltaTime / duration;
+                t += (ProCamera2D.Instance.IgnoreTimeScale ? Time.unscaledDeltaTime : Time.deltaTime) / duration;
 
                 Amount = Utils.EaseFromTo(initialAmount, targetAmount, t, EaseType.EaseOut);
 

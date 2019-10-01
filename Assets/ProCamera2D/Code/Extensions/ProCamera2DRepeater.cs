@@ -47,33 +47,21 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         Vector3 _objStartPosition;
 
-        List<RepeatedObject> _allRepeatedObjects = new List<RepeatedObject>(2);
+        private List<RepeatedObject> _allRepeatedObjects;
 
-        Queue<RepeatedObject> _inactiveRepeatedObjects = new Queue<RepeatedObject>();
+        private Queue<RepeatedObject> _inactiveRepeatedObjects;
 
         IntPoint _prevStartIndex;
         IntPoint _prevEndIndex;
-        Dictionary<IntPoint, bool> _occupiedIndices = new Dictionary<IntPoint, bool>();
+        private Dictionary<IntPoint, bool> _occupiedIndices;
 
-        override protected void Awake()
+        protected override void Awake()
         {
             base.Awake();
 
-            if (ObjectToRepeat == null)
-            {
-                Debug.LogWarning("ProCamera2D Repeater extension - No ObjectToRepeat defined!");
-                return;
-            }
-
-            _objStartPosition = new Vector3(
-                Vector3H(ObjectToRepeat.position), 
-                Vector3V(ObjectToRepeat.position),
-                Vector3D(ObjectToRepeat.position));
+            SetRepeatingObject(ObjectToRepeat, ObjectOnStage);
 
             _cameraToUseTransform = CameraToUse.transform;
-
-            if (ObjectOnStage)
-                InitCopy(ObjectToRepeat);
 
             ProCamera2D.AddPostMover(this);
         }
@@ -137,6 +125,39 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         int _pmOrder = 2000;
 
         #endregion
+
+        public void SetRepeatingObject(Transform objectToRepeat, bool isExistingObject)
+        {
+            ObjectToRepeat = objectToRepeat;
+            
+            if (ObjectToRepeat == null)
+            {
+                Debug.LogWarning("ProCamera2D Repeater extension - No ObjectToRepeat defined!");
+                return;
+            }
+
+            _objStartPosition = new Vector3(
+                Vector3H(ObjectToRepeat.position), 
+                Vector3V(ObjectToRepeat.position),
+                Vector3D(ObjectToRepeat.position));
+
+            if (_allRepeatedObjects != null && _allRepeatedObjects.Count > 0)
+            {
+                for (var i = 0; i < _allRepeatedObjects.Count; i++)
+                {
+                    Destroy(_allRepeatedObjects[i].Transform.gameObject);
+                }
+            }
+            
+            _allRepeatedObjects = new List<RepeatedObject>();
+            _inactiveRepeatedObjects = new Queue<RepeatedObject>();
+            _occupiedIndices = new Dictionary<IntPoint, bool>();
+            _prevStartIndex = new IntPoint();
+            _prevEndIndex = new IntPoint();
+            
+            if(isExistingObject)
+                InitCopy(ObjectToRepeat);
+        }
 
         void FreeOutOfRangeObjects(IntPoint startIndex, IntPoint endIndex)
         {

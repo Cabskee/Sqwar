@@ -1,37 +1,28 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 using UnityEngine;
 
-public class PlayerScore: NetworkBehaviour {
-	[SyncVar] public Color color;
-	[SyncVar] public string playerName;
-	public int lives;
+public class PlayerScore: MonoBehaviour {
+	public Color color;
+	public string playerName;
 
-	Text playerNameText;
-	public List<Image> liveObjects = new List<Image>();
+	Text nameTextObject;
+	public GameObject lifeObject;
+
+	List<GameObject> lives;
 
 	void Awake() {
-		playerNameText = GetComponentInChildren<Text>();
+		nameTextObject = GetComponentInChildren<Text>();
+
+		transform.SetParent(ScoreHandler.Instance.scoreboard.transform, false);
 	}
 
-	void Start() {
-		if (!isServer)
-			transform.SetParent(ScoreHandler.Instance.scoreboard.transform, false);
-	}
+	public void setPlayerInfo(Player player) {
+		playerName = player.controller.playerName;
+		color = player.controller.color;
 
-	void Update() {
-		playerNameText.text = playerName;
-		playerNameText.color = color;
-		liveObjects.ForEach(delegate(Image life) {
-			life.color = color;
-		});
-	}
-
-	public void updatePlayerInfo(Player playerObj) {
-		playerName = playerObj.controller.name;
-		lives = playerObj.controller.livesLeft;
-		color = playerObj.controller.color;
+		nameTextObject.text = playerName;
+		nameTextObject.color = color;
 	}
 }

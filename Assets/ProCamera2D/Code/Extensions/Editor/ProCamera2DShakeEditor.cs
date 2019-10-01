@@ -22,8 +22,6 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (target == null)
                 return;
 
-            ProCamera2DEditorHelper.AssignProCamera2D(target as BasePC2D);
-
             var proCamera2DShake = (ProCamera2DShake)target;
 
             _script = MonoScript.FromMonoBehaviour(proCamera2DShake);
@@ -93,6 +91,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             _shakePresetsList.onRemoveCallback = (list) =>
             {
+                Undo.RecordObject(proCamera2DShake, "Removed shake preset");
                 var element = _shakePresetsList.serializedProperty.GetArrayElementAtIndex(list.index);
 
                 proCamera2DShake.ShakePresets.Remove((ShakePreset)element.objectReferenceValue);
@@ -202,6 +201,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             _constantShakePresetsList.onRemoveCallback = (list) =>
             {
+                Undo.RecordObject(proCamera2DShake, "Removed shake preset");
                 var element = _constantShakePresetsList.serializedProperty.GetArrayElementAtIndex(list.index);
 
                 proCamera2DShake.ConstantShakePresets.Remove((ConstantShakePreset)element.objectReferenceValue);
@@ -217,6 +217,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         {
             if (target == null)
                 return;
+            
+            EditorGUI.BeginChangeCheck();
             
             var proCamera2DShake = (ProCamera2DShake)target;
 
@@ -298,6 +300,11 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
             // Save changes
             serializedObject.ApplyModifiedProperties();
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(proCamera2DShake);
+            }
         }
     }
 }

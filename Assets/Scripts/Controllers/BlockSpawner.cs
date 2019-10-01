@@ -1,10 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Networking;
 using UnityEngine;
 using Constants;
 
-public class BlockSpawner: NetworkBehaviour {
+[System.Serializable]
+public class MinMax {
+	public float min = 0.0f;
+	public float max = 1.0f;
+}
+
+public class BlockSpawner: MonoBehaviour {
 	public static BlockSpawner Instance = null;
 
 	[Header("Block GameObjects")]
@@ -16,8 +21,8 @@ public class BlockSpawner: NetworkBehaviour {
 
 	// Spawn Variables
 	[Header("Block Spawn Settings")]
-	public Vector2 mapSpawnWidth;
-	public Vector2 spawnTimeInterval;
+	public MinMax mapSpawnWidth;
+	public MinMax spawnTimeInterval;
 	public int blocksSpawned = 1;
 	float lastSpawnTime;
 
@@ -47,9 +52,6 @@ public class BlockSpawner: NetworkBehaviour {
 	}
 
 	void Update() {
-		if (!isServer)
-			return;
-
 		if (fallSpeedCounter < increaseFallSpeedIn) {
 			fallSpeedCounter += Time.deltaTime;
 		} else {
@@ -57,31 +59,23 @@ public class BlockSpawner: NetworkBehaviour {
 			currentFallSpeed += increaseFallSpeedBy;
 		}
 
-		if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.x, spawnTimeInterval.y)) {
-			createFallingBlockAtLocation(new Vector3(Random.Range(mapSpawnWidth.x, mapSpawnWidth.y), 10, 0));
+		if (Time.time >= lastSpawnTime+Random.Range(spawnTimeInterval.min, spawnTimeInterval.max)) {
+			createFallingBlockAtLocation(new Vector3(Random.Range(mapSpawnWidth.min, mapSpawnWidth.max), 10, 0));
 			lastSpawnTime = Time.time;
 		}
 	}
 
 	// FALLING BLOCKS
-
-	[ServerCallback]
 	void createFallingBlockAtLocation(Vector3 spawnPos) {
 		GameObject newFallingBlock = TrashMan.Instantiate(fallingBlock, spawnPos, Quaternion.identity, fallingBlockParent.transform);
 		newFallingBlock.GetComponent<FallingBlock>().initialize(blocksSpawned, currentFallSpeed);
 		blocksSpawned++;
-
-		NetworkServer.Spawn(newFallingBlock);
 	}
 
 	// SHOOTING BLOCKS
-
-	[ServerCallback]
-	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, NetworkIdentity ownerIdentity) {
+	public void createShootingBlockAtLocation(Vector3 spawnPos, Constant.FacingDirection directionFacing, Color playerColor, int playerID) {
 		GameObject newShootingBlock = TrashMan.Instantiate(shootingBlock, spawnPos, Quaternion.identity, shootingBlockParent.transform);
-		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, ownerIdentity.netId.Value, directionFacing, playerColor);
+		newShootingBlock.GetComponent<ShootingBlock>().initialize(blocksSpawned, currentShootingSpeed, playerID, directionFacing, playerColor);
 		blocksSpawned++;
-
-		NetworkServer.Spawn(newShootingBlock);
 	}
 }

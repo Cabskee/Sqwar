@@ -46,6 +46,7 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         Transform _shakeParent;
 
         List<Coroutine> _applyInfluencesCoroutines = new List<Coroutine>();
+        List<Coroutine> _shakeTimedCoroutines = new List<Coroutine>();
         Coroutine _shakeCoroutine;
 
         Vector3 _shakeVelocity;
@@ -239,13 +240,21 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             {
                 StopCoroutine(_applyInfluencesCoroutines[i]);
             }
-            _shakePositions.Clear();
-
+            
+            for (int i = 0; i < _shakeTimedCoroutines.Count; i++)
+            {
+                StopCoroutine(_shakeTimedCoroutines[i]);
+            }
+            
             if (_shakeCoroutine != null)
             {
                 StopCoroutine(_shakeCoroutine);
                 _shakeCoroutine = null;
             }
+            
+            _shakePositions.Clear();
+
+            _shakeVelocity = Vector3.zero;
 
             ShakeCompleted();
         }
@@ -428,13 +437,18 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         IEnumerator ApplyShakesTimedRoutine(IList<Vector2> shakes, IList<Quaternion> rotations, float[] durations, bool ignoreTimeScale = false)
         {
+            _shakeTimedCoroutines = new List<Coroutine>();
+            
             var count = -1;
             while (count < durations.Length - 1)
             {
                 count++;
                 var duration = durations[count];
+                
+                var coroutine = StartCoroutine(ApplyShakeTimedRoutine(shakes[count], rotations[count], duration, ignoreTimeScale));
+                _shakeTimedCoroutines.Add(coroutine);
 
-                yield return StartCoroutine(ApplyShakeTimedRoutine(shakes[count], rotations[count], duration, ignoreTimeScale));
+                yield return coroutine;
             }
         }
 
@@ -488,7 +502,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
                 //Debug.DrawLine(transform.localPosition, transform.localPosition + VectorHVD(randomAmplitudeX, randomAmplitudeY, randomAmplitudeZ), Color.green, randomFrequency);
 
-                yield return new WaitForSeconds(randomFrequency);
+                if(ProCamera2D.IgnoreTimeScale)
+                    yield return new WaitForSecondsRealtime(randomFrequency);
+                else
+                    yield return new WaitForSeconds(randomFrequency);
             }
         }
 

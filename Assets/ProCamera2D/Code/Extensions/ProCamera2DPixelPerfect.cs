@@ -27,8 +27,18 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
 		public Vector2 TargetViewportSizeInPixels = new Vector2(80.0f, 50.0f);
 
+		public int Zoom
+		{
+			get { return _zoom; }
+			set
+			{
+				_zoom = value;
+				ResizeCameraToPixelPerfect();
+			}
+		}
 		[Range(1, 32)]
-		public int Zoom = 1;
+		[SerializeField]
+		private int _zoom = 1;
 
 		public bool SnapMovementToGrid;
 		public bool SnapCameraToGrid = true;
@@ -83,8 +93,9 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 		protected override void OnDestroy()
 		{
 			base.OnDestroy();
-
-			ProCamera2D.RemovePositionOverrider(this);
+			
+			if(ProCamera2D)
+				ProCamera2D.RemovePositionOverrider(this);
 		}
 
 		#region IPositionOverrider implementation

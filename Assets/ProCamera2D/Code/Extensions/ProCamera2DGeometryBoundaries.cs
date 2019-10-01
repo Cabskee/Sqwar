@@ -12,15 +12,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         [Tooltip("The layer that contains the (3d) colliders that define the boundaries for the camera")]
         public LayerMask BoundariesLayerMask;
 
-        MoveInColliderBoundaries _cameraMoveInColliderBoundaries;
+        public MoveInColliderBoundaries MoveInColliderBoundaries;
 
         override protected void Awake()
         {
             base.Awake();
 
-            _cameraMoveInColliderBoundaries = new MoveInColliderBoundaries(ProCamera2D);
-            _cameraMoveInColliderBoundaries.CameraTransform = ProCamera2D.transform;
-            _cameraMoveInColliderBoundaries.CameraCollisionMask = BoundariesLayerMask;
+            MoveInColliderBoundaries = new MoveInColliderBoundaries(ProCamera2D);
+            MoveInColliderBoundaries.CameraTransform = ProCamera2D.transform;
+            MoveInColliderBoundaries.CameraCollisionMask = BoundariesLayerMask;
 
             ProCamera2D.AddPositionDeltaChanger(this);
         }
@@ -40,10 +40,10 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             if (!enabled)
                 return originalDelta;
             
-            _cameraMoveInColliderBoundaries.CameraSize = ProCamera2D.ScreenSizeInWorldCoordinates;
+            MoveInColliderBoundaries.CameraSize = ProCamera2D.ScreenSizeInWorldCoordinates;
 
             // Apply movement considering the collider boundaries
-            return _cameraMoveInColliderBoundaries.Move(originalDelta);
+            return MoveInColliderBoundaries.Move(originalDelta);
         }
 
         public int PDCOrder { get { return _pdcOrder; } set { _pdcOrder = value; } }

@@ -15,6 +15,12 @@ namespace Com.LuisPedroFonseca.ProCamera2D
 
         [Range(0, 5)]
         public float Speed = 1.0f;
+        
+        [Range(0, 5)]
+        public float SpeedX = 1.0f;
+        
+        [Range(0, 5)]
+        public float SpeedY = 1.0f;
 
         public LayerMask LayerMask;
 
@@ -37,13 +43,15 @@ namespace Com.LuisPedroFonseca.ProCamera2D
         public Vector3 RootPosition = Vector3.zero;
         public int FrontDepthStart = 1;
         public int BackDepthStart = -1;
+        public bool UseIndependentAxisSpeeds;
+        public bool AutomaticallyConfigureCameraClearFlags = true;
 
         float _initialOrtographicSize;
 
         float[] _initialSpeeds;
         Coroutine _animateCoroutine;
 
-        override protected void Awake()
+        protected override void Awake()
         {
             base.Awake();
 
@@ -143,16 +151,16 @@ namespace Com.LuisPedroFonseca.ProCamera2D
             for (int i = 0; i < parallaxObjs.Length; i++)
             {
                 // Position
-                Vector3 parallaxObjPosition = parallaxObjs[i].transform.position - RootPosition;
-                float x = Vector3H(parallaxObjPosition) * layersDic[parallaxObjs[i].gameObject.layer].Speed;
-                float y = Vector3V(parallaxObjPosition) * layersDic[parallaxObjs[i].gameObject.layer].Speed;
+                var parallaxObjPosition = parallaxObjs[i].transform.position - RootPosition;
+                var x = Vector3H(parallaxObjPosition) * (UseIndependentAxisSpeeds ? layersDic[parallaxObjs[i].gameObject.layer].SpeedX : layersDic[parallaxObjs[i].gameObject.layer].Speed);
+                var y = Vector3V(parallaxObjPosition) * (UseIndependentAxisSpeeds ? layersDic[parallaxObjs[i].gameObject.layer].SpeedY : layersDic[parallaxObjs[i].gameObject.layer].Speed);
                 parallaxObjs[i].transform.position = VectorHVD(x, y, Vector3D(parallaxObjPosition)) + RootPosition;
             }
         }
 
         void Move()
         {
-            Vector3 rootOffset = _transform.position - RootPosition;
+            var rootOffset = _transform.position - RootPosition;
 
             for (int i = 0; i < ParallaxLayers.Count; i++)
             {
@@ -162,8 +170,8 @@ namespace Com.LuisPedroFonseca.ProCamera2D
                     ParallaxLayers[i].ParallaxCamera.rect = ProCamera2D.GameCamera.rect;
                     
                     // Position
-                    float x = ParallaxHorizontal ? Vector3H(rootOffset) * ParallaxLayers[i].Speed : Vector3H(rootOffset);
-                    float y = ParallaxVertical ? Vector3V(rootOffset) * ParallaxLayers[i].Speed : Vector3V(rootOffset);
+                    float x = ParallaxHorizontal ? Vector3H(rootOffset) * (UseIndependentAxisSpeeds ? ParallaxLayers[i].SpeedX : ParallaxLayers[i].Speed) : Vector3H(rootOffset);
+                    float y = ParallaxVertical ? Vector3V(rootOffset) * (UseIndependentAxisSpeeds ? ParallaxLayers[i].SpeedY : ParallaxLayers[i].Speed) : Vector3V(rootOffset);
                     ParallaxLayers[i].CameraTransform.position = RootPosition + VectorHVD(x, y, Vector3D(_transform.position));
 
                     // Zoom
